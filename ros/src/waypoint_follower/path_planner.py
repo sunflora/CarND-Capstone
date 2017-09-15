@@ -3,26 +3,155 @@ Path Planner finds smooth curve for driving based on the final_waypoints using C
 
 Reference:
     This code was ported from the Udacity Path Planning Project:
-        https://github.com/udacity/CarND-Path-Planning-Project/blob/master/src/main.cpp
-    Specifically:
-        https://github.com/sunflora/CarND-Path-Planning-Project/blob/master/src/main.cpp
+        https://github.com/udacity/CarND-Path-Planning-Project
+
+    Twist Commands related subroutines inspired by pure_pursuit module developed by Nagoya University
 
 
-Notes: This module includes a function to get the next waypoints.  TODO: to separate this part out later.
+TODO:
+ This module includes a function to get the next waypoints.  This needs to be separated later.
+ ROS integration has not been tested.
+ Twist Command processing is not finished.
+
 '''
 
 import math
 import numpy as np
 from scipy import interpolate
 
+import rospy
+from std_msgs.msg import Bool
+from std_msgs.msg import Int32
+from styx_msgs.msg import Lane, Waypoint
+from geometry_msgs.msg import Twist, TwistStamped, PoseStamped
+
+import tf
+
+
+RADIUS_MAX = 9.0e10
+KAPPA_MIN  = 1.0/RADIUS_MAX
+
+LOOKAHEAD_WPS = 30  # 90 meters 30 segments
+
+
 class PathPlanner(object):
     def __init__(self):
         self.waypoints = None
         self.current_pose = None
         self.current_speed = None
+        self.yaw = None
 
         self.frenet_coordinate = None
         self.final_waypoints = None
+
+        self.prev_angular_velocity = 0
+
+        rospy.init_node('path_planner')
+
+        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size = 1)
+        rospy.Subscriber('/final_waypoints', Lane, self.final_waypoints_cb, queue_size = 1)
+        rospy.Subscriber('/current_velocity',TwistStamped, self.current_velocity_cb, queue_size = 1)
+
+        self.twist_cmd_pub = rospy.Publisher('twist_cmd', TwistStamped, queue_size=1)
+
+        rospy.spin()
+
+    def pose_cb(self, msg):
+        self.current_pose = msg.pose
+
+        # set the current yaw
+        orientation = msg.pose.orientation
+        q = [orientation.x, orientation.y, orientation.z, orientation.w]
+        _,_,self.yaw = tf.transformations.euler_from_quaternion(q)
+
+        pass
+
+    def final_waypoints_cb(self, msg):
+        self.final_waypoints = msg.waypoints
+
+        cw_x = []
+        cw_y = []
+
+        for wp in self.final_waypoints:
+            cw_x.append(wp.pose.pose.position.x)
+            cw_y.append(wp.pose.pose.position.y)
+
+        car_x = self.current_pose.pose.position.x
+        car_y = self.current_pose.pose.position.y
+
+        cw_x, cw_y = self.path_planning(LOOKAHEAD_WPS, car_x, car_y, self.yaw, self.current_speed, cw_x, cw_y)
+
+        pass
+
+    def calcCurvature( self, target): #geometry_msgs::Point
+
+        denominator = math.pow(getPlaneDistance(target, self.current_pose.pose.position), 2.0)
+        numerator = 2.0 * calcRelativeCoordinate(target, self.current_pose.pose).y
+
+        if denominator != 0:
+            kappa = numerator / denominator;
+        else:
+            if (numerator > 0):
+                kappa = KAPPA_MIN
+            else:
+                kappa = -KAPPA_MIN
+
+        rospy.ROS_INFO_STREAM("kappa :", kappa)
+
+        return kappa
+
+    def calcTwist(self, curvature, cmd_velocity):
+
+        #TODO:verify whether vehicle is following the path
+        # following_flag = verifyFollowing();
+        following_flag = True
+
+        twist = Twist()
+        twist.linear.x = cmd_velocity
+
+        if following_flag:
+            twist.angular.z = self.prev_angular_velocity
+        else:
+            twist.angular.z = self.current_speed * curvature
+
+        self.prev_angular_velocity = twist.angular.z
+
+        return twist
+
+    def outputTwist( self, twist):
+        g_lateral_accel_limit = 0.8
+        ERROR = 1e-8
+
+        twistCmd = TwistStamped()
+        twistCmd.twist = twist
+        twistCmd.header.stamp = rospy.Time.now()
+
+        v = twist.linear.x
+        omega = twist.angular.z
+
+        if math.fabs(omega) < ERROR:
+            return twistCmd
+
+        max_v = g_lateral_accel_limit / omega
+
+        a = v * omega
+
+        rospy.ROS_INFO("lateral accel = %lf", a)
+
+        twistCmd.twist.linear.x = max_v if (math.fabs(a) > g_lateral_accel_limit) else v
+        twistCmd.twist.angular.z = omega
+
+        return twistCmd
+
+    def publish(self, twist_cmd):
+
+        self.twist_cmd_pub.publish(twist_cmd)
+        pass
+
+    def current_velocity_cb(self, msg):
+        self.current_speed = msg.twist.linear.x
+        pass
+
 
     def path_planning(self, waypoints_size, car_x, car_y, theta, car_speed, maps_x, maps_y):
 
