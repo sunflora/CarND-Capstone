@@ -84,7 +84,7 @@ class PathPlanner(object):
         cw_x, cw_y = self.path_planning(LOOKAHEAD_WPS, car_x, car_y, self.yaw, self.current_speed, cw_x, cw_y)
 
         pass
-'''
+    '''
     def calcCurvature( self, target): #geometry_msgs::Point
 
         denominator = math.pow(getPlaneDistance(target, self.current_pose.pose.position), 2.0)
@@ -101,7 +101,7 @@ class PathPlanner(object):
         rospy.ROS_INFO_STREAM("kappa :", kappa)
 
         return kappa
-'''
+    '''
 
     def calcTwist(self, cw_x, cw_y, yaw, cmd_velocity):
 
@@ -467,3 +467,12 @@ class PathPlanner(object):
         y = seg_y + d * math.sin(perp_heading)
 
         return x, y
+
+
+
+if __name__ == '__main__':
+    try:
+        PathPlanner()
+    except rospy.ROSInterruptException:
+        rospy.logerr('Could not start waypoint follower node(path planner).')
+
