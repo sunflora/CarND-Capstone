@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="waypoint_follower" type="path_planner.py" name="path_planner" />
+</launch>
