@@ -82,7 +82,7 @@ class PathPlanner(object):
         cw_x, cw_y = self.path_planning(LOOKAHEAD_WPS, car_x, car_y, self.yaw, self.current_speed, cw_x, cw_y)
 
         pass
-
+'''
     def calcCurvature( self, target): #geometry_msgs::Point
 
         denominator = math.pow(getPlaneDistance(target, self.current_pose.pose.position), 2.0)
@@ -99,12 +99,14 @@ class PathPlanner(object):
         rospy.ROS_INFO_STREAM("kappa :", kappa)
 
         return kappa
+'''
 
-    def calcTwist(self, curvature, cmd_velocity):
+    def calcTwist(self, cw_x, cw_y, yaw, cmd_velocity):
 
         #TODO:verify whether vehicle is following the path
         # following_flag = verifyFollowing();
-        following_flag = True
+        following_flag = False  # False: angular velocity will be calculated every time
+                                # True: previously calculated angular velocity will be used
 
         twist = Twist()
         twist.linear.x = cmd_velocity
@@ -112,11 +114,36 @@ class PathPlanner(object):
         if following_flag:
             twist.angular.z = self.prev_angular_velocity
         else:
-            twist.angular.z = self.current_speed * curvature
+            twist.angular.z = self.calcAngularVelocity(cw_x, cw_y, yaw)
 
         self.prev_angular_velocity = twist.angular.z
 
         return twist
+
+    def normalize_angle(self, theta):
+
+        if theta > 180.0:
+            theta = theta - 360.0
+        else:
+            if theta < -180.0:
+                theta = theta + 360.0
+
+        return theta
+
+    def calcAngularVelocity(self, cw_x, cw_y, current_yaw):
+
+        #theta * current_speed / distance between 5th point and the current point (~ 15m,
+        # we use 90m spline and divides it into 30 segments)
+
+        # lookahead at 5th point and its angle
+        x = cw_x[6] - cw_x[4]
+        y = cw_y[6] - cw_y[4]
+
+        theta = self.normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
+
+        angular_velocity = theta * self.current_speed / 15.0
+
+        return angular_velocity
 
     def outputTwist( self, twist):
         g_lateral_accel_limit = 0.8
@@ -153,7 +180,7 @@ class PathPlanner(object):
         pass
 
 
-    def path_planning(self, waypoints_size, car_x, car_y, theta, car_speed, maps_x, maps_y):
+    def path_planning(self, waypoints_size, car_x, car_y, theta, cmd_speed, maps_x, maps_y):
 
         # find the next N points
 
@@ -173,7 +200,7 @@ class PathPlanner(object):
         map_waypoints_y = maps_y
 
 
-        ref_vel = min(car_speed,10.0)  #limit to 10 miles/hr #TODO: multiply by factor??
+        #ref_vel = min(car_speed,10.0)  #limit to 10 miles/hr #TODO: multiply by factor??
 
         # Create a list of widely spaced (x,y) waypoints, evenly spaced at 30m
         # Later we will interpolate these waypoints with spline and fill it with
@@ -268,7 +295,11 @@ class PathPlanner(object):
             next_y_vals.append(y_point)
 
 
-        return next_x_vals, next_y_vals
+        twist_cmd = self.outputTwist(self.calcTwist(next_x_vals, next_y_vals, theta, cmd_speed))
+
+        self.publish(twist_cmd)
+
+        return
 
     def getMapsS(self, maps_x, maps_y):
         # origin (s,d)
