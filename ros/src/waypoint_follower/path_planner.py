@@ -237,7 +237,7 @@ class PathPlanner(object):
         ptsy.append(car_y)
 
         # In Frenet add evenly 30m spaced points ahead of the starting reference
-        lane = -1   # left lane: +1, right lane: -1
+        lane = -1  # left lane: -1, right lane: +1
         road_width = 4
         middle_of_lane = 0
 

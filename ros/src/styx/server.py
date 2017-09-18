@@ -29,18 +29,27 @@ def send(topic, data):
 
 bridge.register_server(send)
 
+count = 0
+
 @sio.on('telemetry')
 def telemetry(sid, data):
     global dbw_enable
+    global count
     if data["dbw_enable"] != dbw_enable:
         dbw_enable = data["dbw_enable"]
         bridge.publish_dbw_status(dbw_enable)
         #rospy.logerr("======  telemetry: dbw_enable %s", dbw_enable)
     bridge.publish_odometry(data)
-    for i in range(len(msgs)):
-        topic, data = msgs.popitem()
-        #rospy.logerr("======  telemetry: %s",topic)
-        sio.emit(topic, data=data, skip_sid=True)
+    if count == 20:
+        #send_control(0.0, 0.5, 1)
+        count = 0
+        for i in range(len(msgs)):
+            topic, data = msgs.popitem()
+            #rospy.logdebug("======  telemetry: %s %s", topic, data)
+            #rospy.logerr("======  telemetry: %s %s", topic, data)
+            sio.emit(topic, data=data, skip_sid=True, ignore_queue=True)
+
+    count = count + 1    
 
 @sio.on('control')
 def control(sid, data):
@@ -48,21 +57,34 @@ def control(sid, data):
 
 @sio.on('obstacle')
 def obstacle(sid, data):
-    bridge.publish_obstacles(data)
+    #bridge.publish_obstacles(data)
+    pass
 
 @sio.on('lidar')
 def obstacle(sid, data):
-    bridge.publish_lidar(data)
+    #bridge.publish_lidar(data)
+    pass
 
 @sio.on('trafficlights')
 def trafficlights(sid, data):
+    #rospy.logerr("server.py.trafficlights data: %s", data)
     #bridge.publish_traffic(data)
     pass
 
 @sio.on('image')
 def image(sid, data):
+    global dbw_enable
+    #bridge.publish_camera_signal(dbw_enable)
+    # TODO: add back the actual camera image publisher
     #bridge.publish_camera(data)
     pass
+
+
+def send_control(steering_angle, throttle, brake):
+    sio.emit('steer', data={'steering_angle': str(steering_angle)}, skip_sid=True)
+    sio.emit('throttle', data={'throttle': str(throttle)}, skip_sid=True)
+    #sio.emit('brake', data={'brake': str(brake)}, skip_sid=True)
+
 
 if __name__ == '__main__':
 

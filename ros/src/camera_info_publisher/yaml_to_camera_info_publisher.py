@@ -61,7 +61,7 @@ if __name__ == "__main__":
     rospy.init_node("camera_info_publisher", anonymous=True)
     publisher = rospy.Publisher("camera_info", CameraInfo, queue_size=10)
     #rate = rospy.Rate(10)
-    rate = rospy.Rate(1)
+    rate = rospy.Rate(0.1)
     
     # Run publisher
     while not rospy.is_shutdown():

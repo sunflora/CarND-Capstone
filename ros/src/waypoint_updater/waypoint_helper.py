@@ -7,12 +7,17 @@ class WaypointHelper(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def create_lookahead_lane(self, base_lane, begin_index, size, velocity):
+    def create_lookahead_lane(self, base_lane, begin_index, step, size, velocity):
         lane = Lane()
         lane.header.frame_id = base_lane.header.frame_id
-        lane.waypoints = base_lane.waypoints[begin_index: begin_index + size]
+        lane.waypoints = base_lane.waypoints[begin_index: begin_index + size: step]
         for p in lane.waypoints:
-            p.twist.twist.linear.x = velocity
+            p.twist.twist.linear.x = 2.0 # velocity
+            p.twist.twist.linear.y = 0.0
+            p.twist.twist.linear.z = 0.0
+            p.twist.twist.angular.x = 0.0
+            p.twist.twist.angular.y = 0.0
+            p.twist.twist.angular.z = 0.0            
         return lane
 
     def find_nearest_index(self, current_position, base_waypoints):
@@ -25,7 +30,7 @@ class WaypointHelper(object):
                 nearest_distance = d
                 nearest_index = index
             index = index + 1
-        return nearest_index
+        return nearest_index+1
 
     def get_distance_2D(self, p1, p2):
         dx = p1.x - p2.x

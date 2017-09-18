@@ -43,6 +43,10 @@ class Bridge(object):
         self.angular_vel = 0.
         self.bridge = CvBridge()
 
+
+        self.traffic_light = -1
+
+
         self.callbacks = {
             '/vehicle/steering_cmd': self.callback_steering,
             '/vehicle/throttle_cmd': self.callback_throttle,
@@ -160,15 +164,22 @@ class Bridge(object):
         self.publishers['lidar'].publish(self.create_point_cloud_message(zip(data['lidar_x'], data['lidar_y'], data['lidar_z'])))
 
     def publish_traffic(self, data):
+
+
         x, y, z = data['light_pos_x'], data['light_pos_y'], data['light_pos_z'],
         yaw = [math.atan2(dy, dx) for dx, dy in zip(data['light_pos_dx'], data['light_pos_dy'])]
         status = data['light_state']
+        if self.traffic_light != status[0]:
+            rospy.logerr("==============  bridge.py publish_traffic  status change to %s  ====================", status[0])
+            self.traffic_light = status[0]
 
         lights = TrafficLightArray()
         header = Header()
         header.stamp = rospy.Time.now()
         header.frame_id = 'world'
+        lights.header = header
         lights.lights = [self.create_light(*e) for e in zip(x, y, z, yaw, status)]
+
         self.publishers['trafficlights'].publish(lights)
 
     def publish_dbw_status(self, data):
@@ -181,6 +192,11 @@ class Bridge(object):
 
         image_message = self.bridge.cv2_to_imgmsg(image_array, encoding="passthrough")
         self.publishers['image'].publish(image_message)
+
+    #TODO: remove later    
+    def publish_camera_signal(self, data):
+        self.publishers['image_signal'].publish(Bool(data))
+
 
     def callback_steering(self, data):
         self.server('steer', data={'steering_angle': str(data.steering_wheel_angle_cmd)})

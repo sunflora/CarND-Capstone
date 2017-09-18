@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 
+import math
+import numpy
 import rospy
 from std_msgs.msg import Bool
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
 from geometry_msgs.msg import TwistStamped
-import math
+
+from twist_controller import TwistController
 
 mps_2_MPH = 1.0 / 0.44704
 MPH_2_mps = 0.44704
 
-from twist_controller import TwistController
 
 '''
 You can build this node only after you have built (or partially built) the `waypoint_updater` node.
@@ -51,9 +53,14 @@ class DBWNode(object):
         accel_limit = rospy.get_param('~accel_limit', 1.)
         wheel_radius = rospy.get_param('~wheel_radius', 0.2413)
         wheel_base = rospy.get_param('~wheel_base', 2.8498)
-        steer_ratio = rospy.get_param('~steer_ratio', 14.8)
+        steer_ratio = rospy.get_param('~steer_ratio', 14.8) 
         max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
-        max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
+        max_steer_angle = rospy.get_param('~max_steer_angle', 8.)  #=458 degrees
+
+        # steer:wheel = 14.8:1,  
+        # max_steer_angle = 8 rads  = 458 degrees
+        # 458/14.8 = ~30 degrees (max steering range: -15 to 15)
+        self.steering_sensitivity = steer_ratio / numpy.degrees(max_steer_angle) * 2.0 
 
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=1)
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
@@ -102,8 +109,8 @@ class DBWNode(object):
             #                                                     <dbw status>,
             #                                                     <any other argument you need>)
             if self.dbw_enabled:  #<dbw is enabled>:
-                throttle, brake, steer = self.controller.control(self.current_linear_velocity, self.target_linear_velocity, self.current_angular_velocity, self.target_angular_velocity)
-                #throttle = 10.0
+                throttle, brake, steer = self.controller.control(self.current_linear_velocity, self.target_linear_velocity, self.steering_sensitivity, self.target_angular_velocity)
+
                 self.publish(throttle, brake, steer)
             rate.sleep()
 
@@ -124,7 +131,7 @@ class DBWNode(object):
         bcmd.enable = True
         bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
         bcmd.pedal_cmd = brake
-        #self.brake_pub.publish(bcmd)
+        self.brake_pub.publish(bcmd)
 
 
 if __name__ == '__main__':
