@@ -66,7 +66,7 @@ class PathPlanner(object):
         q = [orientation.x, orientation.y, orientation.z, orientation.w]
         _,_,self.yaw = tf.transformations.euler_from_quaternion(q)
 
-        pass
+        return
 
     def final_waypoints_cb(self, msg):
         self.final_waypoints = msg.waypoints
@@ -78,12 +78,22 @@ class PathPlanner(object):
             cw_x.append(wp.pose.pose.position.x)
             cw_y.append(wp.pose.pose.position.y)
 
-        car_x = self.current_pose.pose.position.x
-        car_y = self.current_pose.pose.position.y
 
-        cw_x, cw_y = self.path_planning(LOOKAHEAD_WPS, car_x, car_y, self.yaw, self.current_speed, cw_x, cw_y)
+        car_x = self.current_pose.position.x
+        car_y = self.current_pose.position.y
 
-        pass
+        #rospy.logerr("=========> len(cw_x.): %s", len(cw_x))
+        #rospy.logerr("=========> self.yaw: %s", self.yaw)
+        #rospy.logerr("=========> self.current_speed: %s", self.current_speed)
+
+        okay2run = self.yaw is not None and self.current_speed is not None 
+
+        if not okay2run:
+            return
+
+        self.path_planning(LOOKAHEAD_WPS, car_x, car_y, self.yaw, self.current_speed, cw_x, cw_y)
+
+        return
     '''
     def calcCurvature( self, target): #geometry_msgs::Point
 
@@ -165,7 +175,7 @@ class PathPlanner(object):
 
         a = v * omega
 
-        rospy.ROS_INFO("lateral accel = %lf", a)
+        #rospy.ROS_INFO("lateral accel = %lf", a)
 
         twistCmd.twist.linear.x = max_v if (math.fabs(a) > g_lateral_accel_limit) else v
         twistCmd.twist.angular.z = omega
