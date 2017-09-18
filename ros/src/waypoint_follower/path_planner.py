@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 '''
 Path Planner finds smooth curve for driving based on the final_waypoints using CubicSpline.
 
