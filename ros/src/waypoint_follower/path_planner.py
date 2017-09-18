@@ -64,7 +64,9 @@ class PathPlanner(object):
         # set the current yaw
         orientation = msg.pose.orientation
         q = [orientation.x, orientation.y, orientation.z, orientation.w]
-        _,_,self.yaw = tf.transformations.euler_from_quaternion(q)
+        _,_,theta = tf.transformations.euler_from_quaternion(q)
+
+        self.yaw = math.degrees(theta)
 
         return
 
@@ -83,14 +85,18 @@ class PathPlanner(object):
         car_y = self.current_pose.position.y
 
         #rospy.logerr("=========> len(cw_x.): %s", len(cw_x))
-        #rospy.logerr("=========> self.yaw: %s", self.yaw)
+        rospy.logerr("=========> self.yaw: %s", self.yaw)
         #rospy.logerr("=========> self.current_speed: %s", self.current_speed)
 
         okay2run = self.yaw is not None and self.current_speed is not None 
 
+
         if not okay2run:
             return
 
+        #rospy.logerr('-- yaw --{: f}'.format(self.yaw))
+
+        # self.yaw: unit radian
         self.path_planning(LOOKAHEAD_WPS, car_x, car_y, self.yaw, self.current_speed, cw_x, cw_y)
 
         return
@@ -224,7 +230,7 @@ class PathPlanner(object):
         # either we will reference the starting point as where the car is or at the previous path's end point
         ref_x = car_x
         ref_y = car_y
-        ref_yaw = math.radians(theta)
+        ref_yaw = math.radians(theta) #TODO; BUG FIX
 
         # Use two points that make the path tangent to the car
         prev_car_x = car_x - math.cos(ref_yaw)          # This is the same as math.cos(theta) * 1

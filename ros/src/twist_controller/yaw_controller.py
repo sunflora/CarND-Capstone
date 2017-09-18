@@ -31,6 +31,6 @@ class YawController(object):
     def get_steering(self, steer_sensitivity, target_angular_velocity, current_velocity):
         #15.0 here means looking ahead 15 meters #TODO to change
         target_angle = target_angular_velocity / current_velocity * 15.0 if current_velocity > 0 else 0.0
-        steering = numpy.clip(target_angle * steer_sensitivity, -5, 5)
+        steering = numpy.clip(target_angle * steer_sensitivity, -2.0, 2.0)
 
         return steering

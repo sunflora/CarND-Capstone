@@ -40,12 +40,11 @@ def telemetry(sid, data):
         bridge.publish_dbw_status(dbw_enable)
         #rospy.logerr("======  telemetry: dbw_enable %s", dbw_enable)
     bridge.publish_odometry(data)
-    if count == 20:
+    if count == 2:
         #send_control(0.0, 0.5, 1)
         count = 0
         for i in range(len(msgs)):
             topic, data = msgs.popitem()
-            #rospy.logdebug("======  telemetry: %s %s", topic, data)
             #rospy.logerr("======  telemetry: %s %s", topic, data)
             sio.emit(topic, data=data, skip_sid=True, ignore_queue=True)
 
@@ -53,7 +52,8 @@ def telemetry(sid, data):
 
 @sio.on('control')
 def control(sid, data):
-    bridge.publish_controls(data)
+    #bridge.publish_controls(data)
+    pass
 
 @sio.on('obstacle')
 def obstacle(sid, data):
@@ -92,5 +92,4 @@ if __name__ == '__main__':
     app = socketio.Middleware(sio, app)
 
     # deploy as an eventlet WSGI server
-    #eventlet.wsgi.server(eventlet.listen(('127.0.0.1', 4567)), app)
     eventlet.wsgi.server(eventlet.listen(('', 4567)), app)

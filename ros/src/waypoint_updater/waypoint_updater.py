@@ -22,7 +22,7 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of base_lane we will publish. You can change this number
+LOOKAHEAD_WPS = 100 # Number of base_lane we will publish. You can change this number
 MPH_2_mps = 0.44704
 TARGET_VELOCITY_MPH = 10 * MPH_2_mps
 BRAKE_DISTANCE = 10
@@ -55,7 +55,7 @@ class WaypointUpdater(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(1)
+        rate = rospy.Rate(4)
         while not rospy.is_shutdown():
 
 
