@@ -9,7 +9,6 @@ Reference:
 
     Twist Commands related subroutines inspired by pure_pursuit module developed by Nagoya University
 
-
 TODO:
  This module includes a function to get the next waypoints.  This needs to be separated later.
  ROS integration has not been tested.
@@ -17,6 +16,7 @@ TODO:
 
 '''
 
+import time
 import math
 import numpy as np
 from scipy import interpolate
@@ -42,6 +42,10 @@ class PathPlanner(object):
         self.current_pose = None
         self.current_speed = None
         self.yaw = None
+        self.car_x = None
+        self.car_y = None
+        self.cw_x = None
+        self.cw_y = None
 
         self.frenet_coordinate = None
         self.final_waypoints = None
@@ -56,10 +60,47 @@ class PathPlanner(object):
 
         self.twist_cmd_pub = rospy.Publisher('twist_cmd', TwistStamped, queue_size=1)
 
-        rospy.spin()
+        self.loop()
+
+    def loop(self):
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            #########
+            #rospy.logerr("=========================Inside loop, self.current_pose: %s", self.current_pose)
+            #rospy.logerr("=========================Inside loop, self.final_waypoints: %s ", self.final_waypoints)
+            #rospy.logerr("=========================Inside loop, self.yaw: %s",self.final_waypoints )
+            #rospy.logerr("=========================Inside loop, self.final_waypoints: %s", self.final_waypoints)
+
+            okay2run = self.cw_x is not None and self.cw_y is not None and self.car_x is not None and self.car_y is not None and self.current_pose is not None and self.final_waypoints is not None and self.yaw is not None and self.current_speed is not None
+
+            if okay2run:
+
+                # self.yaw: unit radian
+                self.path_planning(LOOKAHEAD_WPS, self.car_x, self.car_y, self.yaw, self.current_speed, self.cw_x, self.cw_y)
+
+                #self.publish(self.outputTwist(self.setTwist(20.0,0.0)))	
+
+                #rospy.logerr(time.strftime('%X'))
+
+            rate.sleep()
+
+    def setTwist(self, speed, angular_velocity):
+        twist = Twist()
+
+        twist.linear.x = speed
+        twist.angular.z = angular_velocity
+
+        return twist
+
+
+
 
     def pose_cb(self, msg):
+        # 1. Get current positions, yaw
         self.current_pose = msg.pose
+
+        self.car_x = self.current_pose.position.x
+        self.car_y = self.current_pose.position.y
 
         # set the current yaw
         orientation = msg.pose.orientation
@@ -73,31 +114,14 @@ class PathPlanner(object):
     def final_waypoints_cb(self, msg):
         self.final_waypoints = msg.waypoints
 
-        cw_x = []
-        cw_y = []
+        self.cw_x = []
+        self.cw_y = []
 
         for wp in self.final_waypoints:
-            cw_x.append(wp.pose.pose.position.x)
-            cw_y.append(wp.pose.pose.position.y)
+            self.cw_x.append(wp.pose.pose.position.x)
+            self.cw_y.append(wp.pose.pose.position.y)
 
-
-        car_x = self.current_pose.position.x
-        car_y = self.current_pose.position.y
-
-        #rospy.logerr("=========> len(cw_x.): %s", len(cw_x))
-        rospy.logerr("=========> self.yaw: %s", self.yaw)
-        #rospy.logerr("=========> self.current_speed: %s", self.current_speed)
-
-        okay2run = self.yaw is not None and self.current_speed is not None 
-
-
-        if not okay2run:
-            return
-
-        #rospy.logerr('-- yaw --{: f}'.format(self.yaw))
-
-        # self.yaw: unit radian
-        self.path_planning(LOOKAHEAD_WPS, car_x, car_y, self.yaw, self.current_speed, cw_x, cw_y)
+        self.maps_delta_s = self.findMapDeltaS(self.cw_x, self.cw_y)
 
         return
     '''
@@ -197,14 +221,25 @@ class PathPlanner(object):
         self.current_speed = msg.twist.linear.x
         pass
 
+    def path_planning2(self):
+
+        # Get maps_s
+
+        # Get car_s, car_d
+
+        # Find five points
+
+        # Find Spline
+
+        # Find segments
+        return
 
     def path_planning(self, waypoints_size, car_x, car_y, theta, cmd_speed, maps_x, maps_y):
-
-        # find the next N points
 
         # Main car's localization Data
         car_s, car_d = self.getFrenet(car_x, car_y, theta, maps_x, maps_y)
         maps_s, maps_d = self.getMapsS(maps_x, maps_y)
+
 
         '''
         testX, testY = self.getXY(0.,0, maps_s, maps_x, maps_y)
@@ -330,6 +365,13 @@ class PathPlanner(object):
             maps_s.append(map_s_accu)
             maps_d.append(0.0)
         return maps_s, maps_d
+
+    def findMapDeltaS(self, maps_x, maps_y):
+        deltaS = [0]
+        for i in range(1, len(maps_x)):
+             delta = self.distance(maps_x[i-1],maps_y[i-1],maps_x[i],maps_y[i])
+             deltaS.append(delta)
+        return deltaS
 
     # double distance(double x1, double y1, double x2, double y2)
     def distance(self, x1, y1, x2, y2):

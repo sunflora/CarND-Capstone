@@ -12,6 +12,8 @@ from twist_controller import TwistController
 mps_2_MPH = 1.0 / 0.44704
 MPH_2_mps = 0.44704
 
+TARGET_SPEED = 40  #unit: MPH, a.k.a. target_linear_velocity
+
 
 '''
 You can build this node only after you have built (or partially built) the `waypoint_updater` node.
@@ -95,8 +97,8 @@ class DBWNode(object):
     def twist_cb(self, msg):
         self.target_linear_velocity = msg.twist.linear.x
         self.target_angular_velocity = msg.twist.angular.z	
-        
-        self.target_linear_velocity = 10.0 * MPH_2_mps
+
+        self.target_linear_velocity = TARGET_SPEED * MPH_2_mps
 
         #TODO:
         if self.dbw_enabled:  #<dbw is enabled>:
@@ -144,7 +146,7 @@ class DBWNode(object):
         bcmd.enable = True
         bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
         bcmd.pedal_cmd = brake
-        self.brake_pub.publish(bcmd)
+        #self.brake_pub.publish(bcmd)
 
 
 if __name__ == '__main__':
