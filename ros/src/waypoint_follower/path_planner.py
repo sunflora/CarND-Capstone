@@ -63,7 +63,7 @@ class PathPlanner(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(5)
         while not rospy.is_shutdown():
             #########
             #rospy.logerr("=========================Inside loop, self.current_pose: %s", self.current_pose)
@@ -74,6 +74,16 @@ class PathPlanner(object):
             okay2run = self.cw_x is not None and self.cw_y is not None and self.car_x is not None and self.car_y is not None and self.current_pose is not None and self.final_waypoints is not None and self.yaw is not None and self.current_speed is not None
 
             if okay2run:
+
+
+                #adjust cw_x,cw_y according to the current car position            
+                idx = self.ClosestWaypoint(self.car_x, self.car_y, self.cw_x, self.cw_y)
+ 
+                if idx > 1:
+                    self.cw_x = self.cw_x[idx-1:len(self.cw_x)]
+                    self.cw_y = self.cw_y[idx-1:len(self.cw_y)]
+
+                rospy.logerr('----------------- %s', self.yaw)
 
                 # self.yaw: unit radian
                 self.path_planning(LOOKAHEAD_WPS, self.car_x, self.car_y, self.yaw, self.current_speed, self.cw_x, self.cw_y)
@@ -91,9 +101,6 @@ class PathPlanner(object):
         twist.angular.z = angular_velocity
 
         return twist
-
-
-
 
     def pose_cb(self, msg):
         # 1. Get current positions, yaw
@@ -178,12 +185,30 @@ class PathPlanner(object):
         # we use 90m spline and divides it into 30 segments)
 
         # lookahead at 5th point and its angle
+        '''
         x = cw_x[6] - cw_x[4]
         y = cw_y[6] - cw_y[4]
 
         theta = self.normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
+        '''
 
-        angular_velocity = theta * self.current_speed / 15.0
+
+        x = cw_x[6] - cw_x[4]
+        y = cw_y[6] - cw_y[4]
+        
+        theta = self.normalize_angle( math.degrees(math.atan2(y, x)) - current_yaw )
+
+        #next
+        x = cw_x[3] - cw_x[1]
+        y = cw_y[3] - cw_y[1]
+        
+        phi = self.normalize_angle( math.degrees(math.atan2(y, x)) - current_yaw )
+
+        #dist = math.sqrt(x*x+y*y)
+
+        targetAngle = theta * 0.7 + phi * 0.3
+
+        angular_velocity = targetAngle * self.current_speed / 15.0
 
         return angular_velocity
 
@@ -237,8 +262,9 @@ class PathPlanner(object):
     def path_planning(self, waypoints_size, car_x, car_y, theta, cmd_speed, maps_x, maps_y):
 
         # Main car's localization Data
-        car_s, car_d = self.getFrenet(car_x, car_y, theta, maps_x, maps_y)
-        maps_s, maps_d = self.getMapsS(maps_x, maps_y)
+        car_s, car_d, car_index = self.getFrenet(car_x, car_y, theta, maps_x, maps_y)
+
+        maps_s, maps_d = self.getMapsS(car_index, maps_x, maps_y)
 
 
         '''
@@ -354,14 +380,28 @@ class PathPlanner(object):
 
         return
 
-    def getMapsS(self, maps_x, maps_y):
+    # the s is assigned to zero for all the points before the current car position
+    def getMapsS_(self, car_index, maps_x, maps_y):
         # origin (s,d)
         maps_s = [0.0]
         maps_d = [0.0]
         map_s_accu = 0.0
+
         for i in range(1, len(maps_x)):
-            #TODO: delete map_s, map_d = self.getFrenet(maps_x[i], maps_y[i], theta, maps_x, maps_y)
-            map_s_accu = map_s_accu + self.distance( maps_x[i-1],maps_y[i-1],maps_x[i],maps_y[i])
+            if i > car_index:
+                map_s_accu = map_s_accu  + self.maps_delta_s[i]
+            maps_s.append(map_s_accu)
+            maps_d.append(0.0)
+        return maps_s, maps_d
+
+    def getMapsS(self, car_index, maps_x, maps_y):
+        # origin (s,d)
+        maps_s = [0.0]
+        maps_d = [0.0]
+        map_s_accu = 0.0
+
+        for i in range(1, len(maps_x)):
+            map_s_accu = map_s_accu  + self.maps_delta_s[i]
             maps_s.append(map_s_accu)
             maps_d.append(0.0)
         return maps_s, maps_d
@@ -437,9 +477,9 @@ class PathPlanner(object):
             begin_search = map_size - search_size
             start_duplicate = self.ClosestWaypoint(maps_x[0], maps_y[0], maps_x[begin_search:map_size], maps_y[begin_search:map_size])
             start_duplicate = begin_search + start_duplicate
-            print("origin point: ", maps_x[0], maps_y[0])
-            print("duplicate point:", maps_x[start_duplicate], maps_y[start_duplicate])
-            print("start_duplicate found at index: ", start_duplicate)
+            #print("origin point: ", maps_x[0], maps_y[0])
+            #print("duplicate point:", maps_x[start_duplicate], maps_y[start_duplicate])
+            #print("start_duplicate found at index: ", start_duplicate)
         return maps_x[0:start_duplicate - 1], maps_y[0:start_duplicate - 1]
 
     # Transform from Cartesian x,y coordinates to Frenet s,d coordinates
@@ -460,8 +500,8 @@ class PathPlanner(object):
             n_y = maps_y[next_wp] - maps_y[prev_wp]
             x_x = x - maps_x[prev_wp]
             x_y = y - maps_y[prev_wp]
-        except:
-            print("next_wp",next_wp)
+        except Exception as e:
+            rospy.logerr("Path_Planning, getFrenet, Exception: next_wp: %s, e: %s, sys info: %s", next_wp, e.value, sys.exc_info()[0])
             pass
 
 
@@ -485,11 +525,11 @@ class PathPlanner(object):
         # calculate s value
         frenet_s = 0;
         for i in range(0, prev_wp):
-            frenet_s += self.distance(maps_x[i], maps_y[i], maps_x[i + 1], maps_y[i + 1])
+            frenet_s += self.maps_delta_s[i]
 
         frenet_s += self.distance(0, 0, proj_x, proj_y);
 
-        return frenet_s, frenet_d
+        return frenet_s, frenet_d, next_wp
 
 
     # Transform from Frenet s,d coordinates to Cartesian x,y

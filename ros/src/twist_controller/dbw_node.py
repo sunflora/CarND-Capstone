@@ -12,7 +12,7 @@ from twist_controller import TwistController
 mps_2_MPH = 1.0 / 0.44704
 MPH_2_mps = 0.44704
 
-TARGET_SPEED = 40  #unit: MPH, a.k.a. target_linear_velocity
+TARGET_SPEED = 10  #unit: MPH, a.k.a. target_linear_velocity
 
 
 '''
@@ -79,7 +79,7 @@ class DBWNode(object):
 
         rospy.spin()
 
-        self.loop()
+        #self.loop()  # ===> changing to spin, publishing cmd right away
 
     def dbw_cb(self, msg):
         if (self.dbw_enabled != msg.data):
@@ -106,7 +106,7 @@ class DBWNode(object):
 
             self.publish(throttle, brake, steer)
 
-            rospy.logerr('{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
+            rospy.logerr('dbw_node:{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
     
         pass
 
@@ -131,22 +131,24 @@ class DBWNode(object):
 
     def publish(self, throttle, brake, steer):
         #rospy.logerr("==== dbw_node.publish ==== throttle: %s", throttle)
-        tcmd = ThrottleCmd()
-        tcmd.enable = True
-        tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
-        tcmd.pedal_cmd = throttle
-        self.throttle_pub.publish(tcmd)
 
         scmd = SteeringCmd()
         scmd.enable = True
         scmd.steering_wheel_angle_cmd = steer
         self.steer_pub.publish(scmd)
 
-        bcmd = BrakeCmd()
-        bcmd.enable = True
-        bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
-        bcmd.pedal_cmd = brake
-        #self.brake_pub.publish(bcmd)
+        if throttle > 0: 
+            tcmd = ThrottleCmd()
+            tcmd.enable = True
+            tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
+            tcmd.pedal_cmd = throttle
+            self.throttle_pub.publish(tcmd)
+        elif brake > 0:
+            bcmd = BrakeCmd()
+            bcmd.enable = True
+            bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
+            bcmd.pedal_cmd = brake
+            self.brake_pub.publish(bcmd)
 
 
 if __name__ == '__main__':

@@ -15,7 +15,7 @@ ANGULAR_PID_MAX = 0.35
 class TwistController(object):
     def __init__(self, *args, **kwargs):
         # TODO: Implement
-        self.linear_velocity_pid = PID(kp=1.0,ki=0.1,kd=0.5,mn=LINEAR_PID_MIN,mx=LINEAR_PID_MAX)
+        self.linear_velocity_pid = PID(kp=0.2,ki=0.1,kd=0.5,mn=LINEAR_PID_MIN,mx=LINEAR_PID_MAX)
         self.low_pass_filter = LowPassFilter(8.0, 2.0)  #(b,a) normalized
 
         #self.angular_velocity_pid = PID(kp=6.0,ki=0.1,kd=0.5,mn=ANGULAR_PID_MIN,mx=ANGULAR_PID_MAX)
@@ -43,8 +43,8 @@ class TwistController(object):
         throttle = self.low_pass_filter.filt(throttle)
 
         brake = 0.0
-        if throttle <= 0.0:
-            brake = throttle * -1 * 5
+        if throttle <= 0:
+            brake = throttle * -1 * 1000
             throttle = 0.0
 
         steer = self.yaw_controller.get_steering(steer_sensitivity, target_angular_velocity, current_linear_velocity)

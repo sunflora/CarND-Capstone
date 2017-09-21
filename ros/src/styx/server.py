@@ -30,6 +30,9 @@ def send(topic, data):
 bridge.register_server(send)
 
 count = 0
+count_length = 40
+count2 = 0
+count2_length = 40
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -40,18 +43,25 @@ def telemetry(sid, data):
         bridge.publish_dbw_status(dbw_enable)
         #rospy.logerr("======  telemetry: dbw_enable %s", dbw_enable)
     bridge.publish_odometry(data)
-    if count == 2:
+    if count == count_length:
         #send_control(0.0, 0.5, 1)
         count = 0
         for i in range(len(msgs)):
             topic, data = msgs.popitem()
             #rospy.logerr("======  telemetry: %s %s", topic, data)
-            sio.emit(topic, data=data, skip_sid=True, ignore_queue=True)
+            sio.emit(topic, data=data, ignore_queue=True)
 
     count = count + 1    
 
 @sio.on('control')
 def control(sid, data):
+    return
+
+    global count2
+    if count2 == count2_length:
+        rospy.logerr("server.py. control data:%s", data)
+        count2 = 0
+    count2 = count2 + 1
     #bridge.publish_controls(data)
     pass
 
@@ -81,9 +91,9 @@ def image(sid, data):
 
 
 def send_control(steering_angle, throttle, brake):
-    sio.emit('steer', data={'steering_angle': str(steering_angle)}, skip_sid=True)
-    sio.emit('throttle', data={'throttle': str(throttle)}, skip_sid=True)
-    #sio.emit('brake', data={'brake': str(brake)}, skip_sid=True)
+    sio.emit('steer', data={'steering_angle': str(steering_angle)}, skip_sid=True, ignore_queue=True)
+    sio.emit('throttle', data={'throttle': str(throttle)}, skip_sid=True, ignore_queue=True)
+    sio.emit('brake', data={'brake': str(brake)}, skip_sid=True, ignore_queue=True)
 
 
 if __name__ == '__main__':
@@ -92,4 +102,6 @@ if __name__ == '__main__':
     app = socketio.Middleware(sio, app)
 
     # deploy as an eventlet WSGI server
-    eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
+    #eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
+
+    eventlet.wsgi.server(eventlet.listen(('', 4568)), app, max_http_version='HTTP/1.0')
