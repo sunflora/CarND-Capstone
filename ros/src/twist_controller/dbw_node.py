@@ -8,6 +8,7 @@ from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
 from geometry_msgs.msg import TwistStamped
 
 from twist_controller import TwistController
+from yaw_controller import YawController
 
 mps_2_MPH = 1.0 / 0.44704
 MPH_2_mps = 0.44704
@@ -73,7 +74,7 @@ class DBWNode(object):
         # TODO: Create `TwistController` object
         self.controller = TwistController() #(<Arguments you wish to provide>)
         #max_steer_angle is half as in yaw_controller, we have range of (-1* max_steer_angle to max_steer_angle)
-	    self.controller.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle / 2.)  
+        self.controller.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle / 2.)
 
         # TODO: Subscribe to all the topics you need to
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
@@ -102,11 +103,13 @@ class DBWNode(object):
         self.target_linear_velocity = msg.twist.linear.x
         self.target_angular_velocity = msg.twist.angular.z	
 
+        rospy.logerr('dbw_node.twist_cb:{: f}\t{: f}'.format(self.target_linear_velocity, self.target_angular_velocity))
+
         target_linear_velocity = self.target_linear_velocity * MPH_2_mps
 
         #TODO:
         if self.dbw_enabled:  #<dbw is enabled>:
-            throttle, brake, steer = self.controller.control(self.current_linear_velocity, self.target_linear_velocity, self.steering_sensitivity, self.target_angular_velocity)
+            throttle, brake, steer = self.controller.control(self.current_linear_velocity, target_linear_velocity, self.steering_sensitivity, self.target_angular_velocity)
 
             self.publish(throttle, brake, steer)
 

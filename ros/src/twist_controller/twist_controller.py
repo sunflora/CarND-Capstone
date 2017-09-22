@@ -3,7 +3,6 @@ import rospy
 from std_msgs.msg import Bool
 from yaw_controller import YawController
 from lowpass import LowPassFilter
-import DBWNode
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
@@ -16,12 +15,10 @@ ACCEL_SENSITIVITY = 0.06
 SAMPLE_TIME = 0.5 # sample time for PID
 
 class TwistController(object):
-    def __init__(self, dbw_node):
+    def __init__(self):
         self.linear_velocity_pid = PID(kp=ACCEL_SENSITIVITY*1.25,ki=0.003,kd=0.0,mn=LINEAR_PID_MIN,mx=LINEAR_PID_MAX)
         self.low_pass_filter = LowPassFilter(8.0, 2.0)  #(b,a) normalized, (0 , 1) = all pass
-
         self.yaw_controller = None
-
         pass
 
     def control(self, current_linear_velocity, target_linear_velocity, steer_sensitivity, target_angular_velocity):

@@ -190,13 +190,13 @@ class PathPlanner(object):
         x = cw_x[7] - cw_x[5]
         y = cw_y[7] - cw_y[5]
 
-        theta = normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
+        theta = self.normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
 
         # phi: lookahead at the 5th point[6] from the current car position[1] and its angle
         x = cw_x[6] - cw_x[1]
         y = cw_y[6] - cw_y[1]
 
-        phi = normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
+        phi = self.normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
 
         targetAngle =  theta * 0.7 + phi * 0.3
 
@@ -216,20 +216,20 @@ class PathPlanner(object):
         twistCmd.twist = twist
         twistCmd.header.stamp = rospy.Time.now()
 
-        v = twist.linear.x
-        omega = twist.angular.z
-
-        if math.fabs(omega) < ERROR:
-            return twistCmd
-
-        max_v = g_lateral_accel_limit / omega
-
-        a = v * omega
+        # v = twist.linear.x
+        # omega = twist.angular.z
+        #
+        # if math.fabs(omega) < ERROR:
+        #     return twistCmd
+        #
+        # max_v = g_lateral_accel_limit / omega
+        #
+        # a = v * omega
 
         #rospy.ROS_INFO("lateral accel = %lf", a)
 
-        twistCmd.twist.linear.x = max_v if (math.fabs(a) > g_lateral_accel_limit) else v
-        twistCmd.twist.angular.z = omega
+        # twistCmd.twist.linear.x = max_v if (math.fabs(a) > g_lateral_accel_limit) else v
+        # twistCmd.twist.angular.z = omega
 
         return twistCmd
 
@@ -242,20 +242,9 @@ class PathPlanner(object):
         self.current_speed = msg.twist.linear.x
         pass
 
-    def path_planning2(self):
+    def path_planning(self, waypoints_size, car_x, car_y, theta, current_speed, maps_x, maps_y):
 
-        # Get maps_s
-
-        # Get car_s, car_d
-
-        # Find five points
-
-        # Find Spline
-
-        # Find segments
-        return
-
-    def path_planning(self, waypoints_size, car_x, car_y, theta, cmd_speed, maps_x, maps_y):
+        cmd_speed = 10  #TODO temp
 
         # Main car's localization Data
         car_s, car_d, car_index = self.getFrenet(car_x, car_y, theta, maps_x, maps_y)
