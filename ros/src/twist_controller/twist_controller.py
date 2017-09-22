@@ -3,6 +3,7 @@ import rospy
 from std_msgs.msg import Bool
 from yaw_controller import YawController
 from lowpass import LowPassFilter
+import DBWNode
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
@@ -10,16 +11,16 @@ LINEAR_PID_MIN = -1.0
 LINEAR_PID_MAX = 1.0
 ANGULAR_PID_MIN = -0.4
 ANGULAR_PID_MAX = 0.35
+ACCEL_SENSITIVITY = 0.06
 
+SAMPLE_TIME = 0.5 # sample time for PID
 
 class TwistController(object):
-    def __init__(self, *args, **kwargs):
-        # TODO: Implement
-        self.linear_velocity_pid = PID(kp=0.2,ki=0.1,kd=0.5,mn=LINEAR_PID_MIN,mx=LINEAR_PID_MAX)
-        self.low_pass_filter = LowPassFilter(8.0, 2.0)  #(b,a) normalized
+    def __init__(self, dbw_node):
+        self.linear_velocity_pid = PID(kp=ACCEL_SENSITIVITY*1.25,ki=0.003,kd=0.0,mn=LINEAR_PID_MIN,mx=LINEAR_PID_MAX)
+        self.low_pass_filter = LowPassFilter(8.0, 2.0)  #(b,a) normalized, (0 , 1) = all pass
 
-        #self.angular_velocity_pid = PID(kp=6.0,ki=0.1,kd=0.5,mn=ANGULAR_PID_MIN,mx=ANGULAR_PID_MAX)
-        self.yaw_controller = YawController()
+        self.yaw_controller = None
 
         pass
 
@@ -27,18 +28,9 @@ class TwistController(object):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
 
-        sample_time = 0.1
+        sample_time = SAMPLE_TIME
         cte_linear = target_linear_velocity - current_linear_velocity
         throttle = self.linear_velocity_pid.step(cte_linear, sample_time)
-        #rospy.logerr("target: %s and current: %s", target_linear_velocity, current_linear_velocity)
-        #rospy.logerr("========  cte: %s, throttle: %s", cte_linear, throttle)
-
-        '''
-        cte_angular = target_angular_velocity - current_angular_velocity
-        steering = self.angular_velocity_pid.step(cte_angular, sample_time)
-        #rospy.logerr("target: %s and current: %s", target_angular_velocity, current_angular_velocity)
-        #rospy.logerr("========  cte: %s, steering: %s", cte_angular, steering)
-        '''
         
         throttle = self.low_pass_filter.filt(throttle)
 
@@ -47,6 +39,14 @@ class TwistController(object):
             brake = throttle * -1 * 1000
             throttle = 0.0
 
-        steer = self.yaw_controller.get_steering(steer_sensitivity, target_angular_velocity, current_linear_velocity)
+        #   normalized steering : -1/+1
+        #   normalized steering = steer_angle * 2 / max_steer_angle
+        #   steer_angle = wheel_angle * steer_ratio
+        #   normalized steering = wheel_angle * { steer_ratio * 2 / max_steer_angle }
+        #   steer_sensitivity = steer_ratio * 2 / max_steer_angle
+        #
+        #   normalized steerting = wheel_angle * steer_sensitivity
+
+        steer = steer_sensitivity * self.yaw_controller.get_steering(target_linear_velocity, target_angular_velocity, current_linear_velocity)
 
         return throttle, brake, steer

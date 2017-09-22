@@ -24,7 +24,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 
 LOOKAHEAD_WPS = 100 # Number of base_lane we will publish. You can change this number
 MPH_2_mps = 0.44704
-TARGET_VELOCITY_MPH = 10 * MPH_2_mps
+TARGET_VELOCITY_MPS = 10 * MPH_2_mps
 BRAKE_DISTANCE = 10
 
 class WaypointUpdater(object):
@@ -36,7 +36,7 @@ class WaypointUpdater(object):
         self.base_lane = None
         self.base_waypoints = None
         self.dbw_enabled = False
-        self.max_velocity = TARGET_VELOCITY_MPH
+        self.max_velocity = TARGET_VELOCITY_MPS
         self.traffic_waypoint = None
         self.current_position = None
 
@@ -73,14 +73,14 @@ class WaypointUpdater(object):
             if okay2run:
                 
                 if self.traffic_waypoint == -1:
-                    self.max_velocity = TARGET_VELOCITY_MPH
+                    self.max_velocity = TARGET_VELOCITY_MPS
                     #rospy.logerr("WPUpdater, pose_cb: light_wy: %s car_wy:%s  ", self.traffic_waypoint, self.nearest_wy_indx)
                 else:
                     if 0 < (self.traffic_waypoint - self.nearest_wy_indx) < BRAKE_DISTANCE:
                         rospy.logerr("WPUpdater, pose_cb: Redlight Alert!  light_wy: %s car_wy:%s  ",self.traffic_waypoint, self.nearest_wy_indx)
                         self.max_velocity = 0
                     else:
-                        self.max_velocity = TARGET_VELOCITY_MPH
+                        self.max_velocity = TARGET_VELOCITY_MPS
 
                 self.final_lane = self.wph.create_lookahead_lane(self.base_lane, self.nearest_wy_indx, self.final_lane_step, LOOKAHEAD_WPS, self.max_velocity)
                 #rospy.logerr("WPUpdater, pose_cb: car_wy:%s  ", self.nearest_wy_indx)

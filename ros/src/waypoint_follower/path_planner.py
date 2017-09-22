@@ -181,34 +181,30 @@ class PathPlanner(object):
 
     def calcAngularVelocity(self, cw_x, cw_y, current_yaw):
 
+        current_speed_mps = self.current_speed * 0.44
+
         #theta * current_speed / distance between 5th point and the current point (~ 15m,
         # we use 90m spline and divides it into 30 segments)
 
-        # lookahead at 5th point and its angle
-        '''
-        x = cw_x[6] - cw_x[4]
-        y = cw_y[6] - cw_y[4]
+        # theta: the tagency of the 5th point[6] from the current car position[1]
+        x = cw_x[7] - cw_x[5]
+        y = cw_y[7] - cw_y[5]
 
-        theta = self.normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
-        '''
+        theta = normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
 
+        # phi: lookahead at the 5th point[6] from the current car position[1] and its angle
+        x = cw_x[6] - cw_x[1]
+        y = cw_y[6] - cw_y[1]
 
-        x = cw_x[6] - cw_x[4]
-        y = cw_y[6] - cw_y[4]
-        
-        theta = self.normalize_angle( math.degrees(math.atan2(y, x)) - current_yaw )
+        phi = normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
 
-        #next
-        x = cw_x[3] - cw_x[1]
-        y = cw_y[3] - cw_y[1]
-        
-        phi = self.normalize_angle( math.degrees(math.atan2(y, x)) - current_yaw )
+        targetAngle =  theta * 0.7 + phi * 0.3
 
-        #dist = math.sqrt(x*x+y*y)
+        dist = math.sqrt( math.pow(cw_x[6]-cw_x[1],2.0)+math.pow(cw_y[6]-cw_y[1],2.0))
 
-        targetAngle = theta * 0.7 + phi * 0.3
+        #rospy.logerr("target angle is: {: f} lookahead distance: {: f}".format( targetAngle, dist))
 
-        angular_velocity = targetAngle * self.current_speed / 15.0
+        angular_velocity = math.radians(targetAngle) * current_speed_mps / dist
 
         return angular_velocity
 

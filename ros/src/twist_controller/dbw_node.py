@@ -13,7 +13,7 @@ mps_2_MPH = 1.0 / 0.44704
 MPH_2_mps = 0.44704
 
 TARGET_SPEED = 10  #unit: MPH, a.k.a. target_linear_velocity
-
+min_speed = 5.0    #TODO: adjust this variable
 
 '''
 You can build this node only after you have built (or partially built) the `waypoint_updater` node.
@@ -56,13 +56,15 @@ class DBWNode(object):
         wheel_radius = rospy.get_param('~wheel_radius', 0.2413)
         wheel_base = rospy.get_param('~wheel_base', 2.8498)
         steer_ratio = rospy.get_param('~steer_ratio', 14.8) 
-        max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
+        max_lat_accel = rospy.get_param('~max_lat_accel', 3.)      # meters/s^2
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)  #=458 degrees
 
         # steer:wheel = 14.8:1,  
         # max_steer_angle = 8 rads  = 458 degrees
         # 458/14.8 = ~30 degrees (max steering range: -15 to 15)
-        self.steering_sensitivity = steer_ratio / numpy.degrees(max_steer_angle) * 2.0 
+        # steering_sensitivity is in radians^(-1)
+        # this number is used to get the noramlized steering 
+        self.steering_sensitivity = steer_ratio / max_steer_angle * 2.0 
 
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=1)
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
@@ -70,7 +72,9 @@ class DBWNode(object):
 
         # TODO: Create `TwistController` object
         self.controller = TwistController() #(<Arguments you wish to provide>)
-	
+        #max_steer_angle is half as in yaw_controller, we have range of (-1* max_steer_angle to max_steer_angle)
+	    self.controller.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle / 2.)  
+
         # TODO: Subscribe to all the topics you need to
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/current_velocity',TwistStamped, self.velocity_cb)
@@ -98,7 +102,7 @@ class DBWNode(object):
         self.target_linear_velocity = msg.twist.linear.x
         self.target_angular_velocity = msg.twist.angular.z	
 
-        self.target_linear_velocity = TARGET_SPEED * MPH_2_mps
+        target_linear_velocity = self.target_linear_velocity * MPH_2_mps
 
         #TODO:
         if self.dbw_enabled:  #<dbw is enabled>:
@@ -110,6 +114,7 @@ class DBWNode(object):
     
         pass
 
+    '''
     def loop(self):
         rate = rospy.Rate(0.2) # 50Hz
         while not rospy.is_shutdown():
@@ -128,6 +133,7 @@ class DBWNode(object):
                 rospy.logerr('{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
 
             rate.sleep()
+    '''
 
     def publish(self, throttle, brake, steer):
         #rospy.logerr("==== dbw_node.publish ==== throttle: %s", throttle)
