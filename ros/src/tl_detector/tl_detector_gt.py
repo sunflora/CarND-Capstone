@@ -24,7 +24,8 @@ from styx_msgs.msg import TrafficLightArray, TrafficLight
 
 from tl_helper import TLHelper
 
-STATE_COUNT_THRESHOLD = 3
+#STATE_COUNT_THRESHOLD = 3
+STATE_COUNT_THRESHOLD = 1
 
 class TLDetector(object):
     def __init__(self, *args, **kwargs):
