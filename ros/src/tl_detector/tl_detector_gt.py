@@ -58,7 +58,15 @@ class TLDetector(object):
         self.active_wp = -1
         self.state_count = 0
 
-        rospy.spin()
+        #rospy.spin()
+        self.loop()
+
+    def loop(self):
+        rate = rospy.Rate(1)
+        while not rospy.is_shutdown():
+            self.process_traffic_lights()
+            rate.sleep() 
+
 
     def pose_cb(self, msg):
         #rospy.logerr("Inside TLDetectorGT.pose_cb")
@@ -88,8 +96,6 @@ class TLDetector(object):
             nearest_waypoint = self.tlh.get_nearest_waypoint(light_position, self.base_waypoints)
             lights_waypoints.append(nearest_waypoint)
         self.lights_waypoints = lights_waypoints
-
-        self.process_traffic_lights()
         
         return
 
@@ -119,6 +125,11 @@ class TLDetector(object):
 
 
     def process_traffic_lights(self):
+
+        okay2run = self.pose is not None and self.base_waypoints is not None and self.lights_waypoints is not None
+        if not okay2run:
+            return
+
 
         light_wp, state = self.get_traffic_light_wp()
 
@@ -152,9 +163,6 @@ class TLDetector(object):
         """
 
 
-        okay2run = self.pose is not None and self.base_waypoints is not None and self.lights_waypoints is not None
-        if not okay2run:
-            return
 
         '''
         for i in range(0, len(self.lights_waypoints)):
