@@ -26,7 +26,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 
 LOOKAHEAD_WPS = 100 # Number of base_lane we will publish. You can change this number
 MPH_2_mps = 0.44704
-TARGET_VELOCITY_MPS = 10 
+TARGET_VELOCITY_MPS = 10 / MPH_2_mps
 BRAKE_LIMIT_LOWER = 10
 BRAKE_LIMIT_UPPER = 40
 
