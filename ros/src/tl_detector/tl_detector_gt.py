@@ -62,7 +62,7 @@ class TLDetector(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(20)
         while not rospy.is_shutdown():
  
             if self.base_waypoints is not None and self.lights is not None:
