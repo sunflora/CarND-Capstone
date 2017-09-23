@@ -104,4 +104,4 @@ if __name__ == '__main__':
     # deploy as an eventlet WSGI server
     #eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
 
-    eventlet.wsgi.server(eventlet.listen(('', 4567), backlog=200), app)
+    eventlet.wsgi.server(eventlet.listen(('', 4567), backlog=1000), app)
