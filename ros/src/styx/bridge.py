@@ -170,7 +170,7 @@ class Bridge(object):
         yaw = [math.atan2(dy, dx) for dx, dy in zip(data['light_pos_dx'], data['light_pos_dy'])]
         status = data['light_state']
         if self.traffic_light != status[0]:
-            rospy.logerr("==============  bridge.py publish_traffic  status change to %s  ====================", status[0])
+            rospy.loginfo("===  bridge.py::publish_traffic status change: %s ====", status[0])
             self.traffic_light = status[0]
 
         lights = TrafficLightArray()
