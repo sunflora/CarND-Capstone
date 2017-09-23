@@ -26,8 +26,9 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 
 LOOKAHEAD_WPS = 100 # Number of base_lane we will publish. You can change this number
 MPH_2_mps = 0.44704
-TARGET_VELOCITY_MPS = 10 * MPH_2_mps
-BRAKE_DISTANCE = 20
+TARGET_VELOCITY_MPS = 10 
+BRAKE_LIMIT_LOWER = 3
+BRAKE_LIMIT_UPPER = 30
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -98,7 +99,7 @@ class WaypointUpdater(object):
                 '''
                 self.max_velocity = TARGET_VELOCITY_MPS
                 if self.traffic_waypoint != -1:
-                    if 0 < (self.traffic_waypoint - self.nearest_wy_indx) < BRAKE_DISTANCE:
+                    if  BRAKE_LIMIT_LOWER < (self.traffic_waypoint - self.nearest_wy_indx) < BRAKE_LIMIT_UPPER:
                         rospy.logerr("WPUpdater, pose_cb: Redlight Alert!  light_wy: %s car_wy:%s  ",self.traffic_waypoint, self.nearest_wy_indx)
                         self.max_velocity = 0
 
