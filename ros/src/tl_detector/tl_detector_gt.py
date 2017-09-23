@@ -62,9 +62,23 @@ class TLDetector(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(1)
+        rate = rospy.Rate(2)
         while not rospy.is_shutdown():
-            self.process_traffic_lights()
+ 
+            if self.base_waypoints is not None:
+
+                #rospy.logerr("TLDetectorGT.traffic_cb: base_waypoint is not None")
+
+                ## TODO: Note that here we assume light position won't change in the context of base_waypoint
+                lights_waypoints = []
+                for l in self.lights:
+                    light_position = l.pose.pose.position
+                    nearest_waypoint = self.tlh.get_nearest_waypoint(light_position, self.base_waypoints)
+                    lights_waypoints.append(nearest_waypoint)
+                self.lights_waypoints = lights_waypoints
+
+                self.process_traffic_lights()
+
             rate.sleep() 
 
 
@@ -84,18 +98,6 @@ class TLDetector(object):
         self.lights = msg.lights
         #print ("--- traffic_cb ---", self.lights)
 
-        if self.base_waypoints is None:
-            return
-
-        #rospy.logerr("TLDetectorGT.traffic_cb: base_waypoint is not None")
-
-        ## TODO: Note that here we assume light position won't change in the context of base_waypoint
-        lights_waypoints = []
-        for l in self.lights:
-            light_position = l.pose.pose.position
-            nearest_waypoint = self.tlh.get_nearest_waypoint(light_position, self.base_waypoints)
-            lights_waypoints.append(nearest_waypoint)
-        self.lights_waypoints = lights_waypoints
         
         return
 
