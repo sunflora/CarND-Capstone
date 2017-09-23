@@ -67,6 +67,8 @@ class DBWNode(object):
         # this number is used to get the noramlized steering 
         self.steering_sensitivity = steer_ratio / max_steer_angle * 2.0 
 
+        #rospy.logerr('st_sen:{} {} {}'.format( steer_ratio, max_steer_angle, self.steering_sensitivity))
+
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd', SteeringCmd, queue_size=1)
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
         self.brake_pub = rospy.Publisher('/vehicle/brake_cmd', BrakeCmd, queue_size=1)
@@ -74,6 +76,7 @@ class DBWNode(object):
         # TODO: Create `TwistController` object
         self.controller = TwistController() #(<Arguments you wish to provide>)
         #max_steer_angle is half as in yaw_controller, we have range of (-1* max_steer_angle to max_steer_angle)
+
         self.controller.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle / 2.)
 
         # TODO: Subscribe to all the topics you need to

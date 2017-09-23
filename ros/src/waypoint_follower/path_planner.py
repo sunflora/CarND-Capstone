@@ -35,6 +35,10 @@ KAPPA_MIN  = 1.0/RADIUS_MAX
 
 LOOKAHEAD_WPS = 30  # 90 meters 30 segments
 
+#TODO: testing only
+TARGET_SPEED = 10.0  #unit: MPH, a.k.a. target_linear_velocity
+
+LANE = 0 # left lane: -1, right lane: +1
 
 class PathPlanner(object):
     def __init__(self):
@@ -129,25 +133,7 @@ class PathPlanner(object):
         self.maps_delta_s = self.findMapDeltaS(self.cw_x, self.cw_y)
 
         return
-    '''
-    def calcCurvature( self, target): #geometry_msgs::Point
-
-        denominator = math.pow(getPlaneDistance(target, self.current_pose.pose.position), 2.0)
-        numerator = 2.0 * calcRelativeCoordinate(target, self.current_pose.pose).y
-
-        if denominator != 0:
-            kappa = numerator / denominator;
-        else:
-            if (numerator > 0):
-                kappa = KAPPA_MIN
-            else:
-                kappa = -KAPPA_MIN
-
-        rospy.ROS_INFO_STREAM("kappa :", kappa)
-
-        return kappa
-    '''
-
+    
     def calcTwist(self, cw_x, cw_y, yaw, cmd_velocity):
 
         #TODO:verify whether vehicle is following the path
@@ -242,7 +228,7 @@ class PathPlanner(object):
 
     def path_planning(self, waypoints_size, car_x, car_y, theta, current_speed, maps_x, maps_y):
 
-        cmd_speed = 10  #TODO temp
+        cmd_speed = TARGET_SPEED  #10.0  #TODO temp
 
         # Main car's localization Data
         car_s, car_d, car_index = self.getFrenet(car_x, car_y, theta, maps_x, maps_y)
@@ -287,7 +273,7 @@ class PathPlanner(object):
         ptsy.append(car_y)
 
         # In Frenet add evenly 30m spaced points ahead of the starting reference
-        lane = -1  # left lane: -1, right lane: +1
+        lane = LANE
         road_width = 4
         middle_of_lane = 0
 
