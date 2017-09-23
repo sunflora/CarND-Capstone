@@ -96,7 +96,7 @@ class WaypointUpdater(object):
                 else:
                     self.max_velocity = 20.0
                 '''
-                self.max_velocity = self.max_velocity
+                self.max_velocity = TARGET_VELOCITY_MPS
                 if self.traffic_waypoint != -1:
                     if 0 < (self.traffic_waypoint - self.nearest_wy_indx) < BRAKE_DISTANCE:
                         rospy.logerr("WPUpdater, pose_cb: Redlight Alert!  light_wy: %s car_wy:%s  ",self.traffic_waypoint, self.nearest_wy_indx)
