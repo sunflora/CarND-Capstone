@@ -78,7 +78,7 @@ def obstacle(sid, data):
 @sio.on('trafficlights')
 def trafficlights(sid, data):
     #rospy.logerr("server.py.trafficlights data: %s", data)
-    #bridge.publish_traffic(data)
+    bridge.publish_traffic(data)
     pass
 
 @sio.on('image')

@@ -92,7 +92,7 @@ class DBWNode(object):
     def dbw_cb(self, msg):
         if (self.dbw_enabled != msg.data):
             self.dbw_enabled = msg.data
-            rospy.logerr("self.dbw_enabled is: %s", self.dbw_enabled)
+            #rospy.logerr("self.dbw_enabled is: %s", self.dbw_enabled)
         pass
 
     def velocity_cb(self, msg):
@@ -106,7 +106,7 @@ class DBWNode(object):
         self.target_linear_velocity = msg.twist.linear.x
         self.target_angular_velocity = msg.twist.angular.z	
 
-        rospy.logerr('dbw_node.twist_cb:{: f}\t{: f}'.format(self.target_linear_velocity, self.target_angular_velocity))
+        #rospy.logerr('dbw_node.twist_cb:{: f}\t{: f}'.format(self.target_linear_velocity, self.target_angular_velocity))
 
         target_linear_velocity = self.target_linear_velocity * MPH_2_mps
 
@@ -116,7 +116,7 @@ class DBWNode(object):
 
             self.publish(throttle, brake, steer)
 
-            rospy.logerr('dbw_node:{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
+            #rospy.logerr('dbw_node:{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
     
         pass
 

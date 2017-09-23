@@ -12,7 +12,7 @@ class WaypointHelper(object):
         lane.header.frame_id = base_lane.header.frame_id
         lane.waypoints = base_lane.waypoints[begin_index: begin_index + size: step]
         for p in lane.waypoints:
-            p.twist.twist.linear.x = 2.0 # velocity
+            p.twist.twist.linear.x = velocity 
             p.twist.twist.linear.y = 0.0
             p.twist.twist.linear.z = 0.0
             p.twist.twist.angular.x = 0.0

@@ -43,6 +43,7 @@ class TLDetector(object):
         self.lights = None
         self.lights_waypoints = None
 
+
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size = 1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size = 1)
         rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size = 1)
@@ -53,8 +54,8 @@ class TLDetector(object):
 
         self.has_image = False
         self.state = TrafficLight.UNKNOWN
-        self.last_state = TrafficLight.UNKNOWN
-        self.last_wp = -1
+        self.active_state = TrafficLight.UNKNOWN
+        self.active_wp = -1
         self.state_count = 0
 
         rospy.spin()
@@ -71,13 +72,9 @@ class TLDetector(object):
 
 
     def traffic_cb(self, msg):
-        #rospy.logerr("Inside TLDetectorGT.traffic_cb")
+        
         self.lights = msg.lights
         #print ("--- traffic_cb ---", self.lights)
-
-        #rospy.logerr("TLDetectorGT.process_traffic_lights, state: %s", self.lights[0].state)
-
-
 
         if self.base_waypoints is None:
             return
@@ -92,10 +89,9 @@ class TLDetector(object):
             lights_waypoints.append(nearest_waypoint)
         self.lights_waypoints = lights_waypoints
 
-        #print("--- traffic_cb ---", self.lights[0].state, self.lights[1].state, self.lights[2].state, self.lights[3].state,self.lights[4].state,self.lights[5].state,self.lights[6].state,self.lights[7].state )
-
-        #rospy.logerr("TLDetectorGT.traffic_cb: size of self.lights_waypoints is %s", len(self.lights_waypoints))
-
+        self.process_traffic_lights()
+        
+        return
 
     def image_color_cb(self, msg):
         #rospy.logerr("Inside TLDetectorGT.image_cb")
@@ -117,8 +113,14 @@ class TLDetector(object):
         if not okay2run:
             return
 
+        self.process_traffic_lights()
 
-        light_wp, state = self.process_traffic_lights()
+        return
+
+
+    def process_traffic_lights(self):
+
+        light_wp, state = self.get_traffic_light_wp()
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -127,21 +129,20 @@ class TLDetector(object):
         used.
         '''
         if self.state != state:
-            self.state_count = 0
             self.state = state
-            rospy.logerr("TLDetectorGT.image_cb, state:%s light_wp:%s  car_wp:%s", state, light_wp, self.pose_nearest_waypoint)
-        elif self.state_count >= STATE_COUNT_THRESHOLD: 
-            self.last_state = self.state
-            light_wp = light_wp if state == TrafficLight.RED else -1
-            self.last_wp = light_wp
-            self.upcoming_red_light_pub.publish(Int32(light_wp))
-            #rospy.logerr("TLDetectorGT.image_cb, count >= THRESHOLD, publishing: %s", Int32(light_wp))
-        else:
-            self.upcoming_red_light_pub.publish(Int32(self.last_wp))
-            #rospy.logerr("TLDetectorGT.image_cb, count < THRESHOLD, publishing: %s", Int32(self.last_wp))
+            self.state_count = 0
+        
+        if self.state_count != 0:
+            if self.state_count >= STATE_COUNT_THRESHOLD: 
+                self.active_state = self.state
+                self.active_wp = light_wp if state == TrafficLight.RED else -1
+            self.upcoming_red_light_pub.publish(Int32(self.active_wp))
+            
+        #rospy.logerr('st:{}\tcnt:{}\twp:{}'.format( self.state, self.state_count, self.active_wp))
+
         self.state_count += 1
 
-    def process_traffic_lights(self):
+    def get_traffic_light_wp(self):
         """
         Finds closest visible traffic light, if one exists, and determines its location and color
 
@@ -161,24 +162,19 @@ class TLDetector(object):
         '''
 
         self.pose_nearest_waypoint = self.tlh.get_nearest_waypoint(self.pose_position, self.base_waypoints)
-        found = False
-        indx = 0
-        while not found:
-            if (self.lights_waypoints[indx] <= self.pose_nearest_waypoint) and (indx+1 < len(self.lights_waypoints)):
-                indx = indx + 1
-            else:
-                found = True
-                if indx < len(self.lights_waypoints):
-                    self.light_waypoint = self.lights_waypoints[indx]
-                else:
-                    self.light_waypoint = self.lights_waypoints[0]
+        self.light_waypoint = self.get_nearest_light_wp( self.pose_nearest_waypoint, self.lights_waypoints)
 
         ## TODO: Note Assuming all traffic lights have the same state
         state = self.get_light_state(self.lights[0])
 
-        #rospy.logerr("TLDetectorGT.process_traffic_lights: car-wp: %s tl-wp:%s state:%s", self.pose_nearest_waypoint, self.light_waypoint, state)
+        #rospy.logerr("TLDetectorGT.get_traffic_light_wp: car-wp: %s tl-wp:%s state:%s", self.pose_nearest_waypoint, self.light_waypoint, state)
         return self.light_waypoint, state
 
+    def get_nearest_light_wp(self, current_wp, light_wps):
+        for i in range(0, len(light_wps)):
+            if light_wps[i] > current_wp:
+                return light_wps[i]
+        return lights_wp[0]
 
     def get_light_state(self, light):
         #rospy.logerr("TLDetectorGT.get_light_state: %s", light.state)

@@ -86,11 +86,12 @@ class PathPlanner(object):
                 if idx > 1:
                     self.cw_x = self.cw_x[idx-1:len(self.cw_x)]
                     self.cw_y = self.cw_y[idx-1:len(self.cw_y)]
+                    self.cw_v = self.cw_v[idx-1:len(self.cw_v)]
 
-                rospy.logerr('----------------- %s', self.yaw)
+                #rospy.logerr('----------------- %s', self.yaw)
 
                 # self.yaw: unit radian
-                self.path_planning(LOOKAHEAD_WPS, self.car_x, self.car_y, self.yaw, self.current_speed, self.cw_x, self.cw_y)
+                self.path_planning(LOOKAHEAD_WPS, self.car_x, self.car_y, self.yaw, self.current_speed, self.cw_x, self.cw_y, self.cw_v)
 
                 #self.publish(self.outputTwist(self.setTwist(20.0,0.0)))	
 
@@ -125,12 +126,18 @@ class PathPlanner(object):
 
         self.cw_x = []
         self.cw_y = []
+        self.cw_v = []
 
         for wp in self.final_waypoints:
             self.cw_x.append(wp.pose.pose.position.x)
             self.cw_y.append(wp.pose.pose.position.y)
+            self.cw_v.append(wp.twist.twist.linear.x)
 
         self.maps_delta_s = self.findMapDeltaS(self.cw_x, self.cw_y)
+
+        
+
+
 
         return
     
@@ -226,12 +233,12 @@ class PathPlanner(object):
         self.current_speed = msg.twist.linear.x
         pass
 
-    def path_planning(self, waypoints_size, car_x, car_y, theta, current_speed, maps_x, maps_y):
+    def path_planning(self, waypoints_size, car_x, car_y, theta, current_speed, maps_x, maps_y, maps_v):
 
-        cmd_speed = TARGET_SPEED  #10.0  #TODO temp
 
         # Main car's localization Data
         car_s, car_d, car_index = self.getFrenet(car_x, car_y, theta, maps_x, maps_y)
+        cmd_speed = maps_v[car_index]
 
         maps_s, maps_d = self.getMapsS(car_index, maps_x, maps_y)
 

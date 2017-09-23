@@ -33,7 +33,7 @@ class TwistController(object):
 
         brake = 0.0
         if throttle <= 0:
-            brake = throttle * -1 * 1000
+            brake = throttle * -1 * 10000
             throttle = 0.0
 
         #   normalized steering : -1/+1
