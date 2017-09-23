@@ -112,9 +112,7 @@ class PathPlanner(object):
         # set the current yaw
         orientation = msg.pose.orientation
         q = [orientation.x, orientation.y, orientation.z, orientation.w]
-        _,_,theta = tf.transformations.euler_from_quaternion(q)
-
-        self.yaw = math.degrees(theta)
+        _, _, self.yaw = tf.transformations.euler_from_quaternion(q)
 
         return
 
@@ -171,11 +169,11 @@ class PathPlanner(object):
 
     def normalize_angle(self, theta):
 
-        if theta > 180.0:
-            theta = theta - 360.0
+        if theta > math.pi:
+            theta = theta - math.pi * 2.0
         else:
-            if theta < -180.0:
-                theta = theta + 360.0
+            if theta < -math.pi:
+                theta = theta + math.pi * 2.0
 
         return theta
 
@@ -190,13 +188,13 @@ class PathPlanner(object):
         x = cw_x[7] - cw_x[5]
         y = cw_y[7] - cw_y[5]
 
-        theta = self.normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
+        theta = self.normalize_angle(math.atan2(y, x) - current_yaw)
 
         # phi: lookahead at the 5th point[6] from the current car position[1] and its angle
         x = cw_x[6] - cw_x[1]
         y = cw_y[6] - cw_y[1]
 
-        phi = self.normalize_angle(math.degrees(math.atan2(y, x)) - current_yaw)
+        phi = self.normalize_angle(math.atan2(y, x) - current_yaw)
 
         targetAngle =  theta * 0.7 + phi * 0.3
 
@@ -204,7 +202,7 @@ class PathPlanner(object):
 
         #rospy.logerr("target angle is: {: f} lookahead distance: {: f}".format( targetAngle, dist))
 
-        angular_velocity = math.radians(targetAngle) * current_speed_mps / dist
+        angular_velocity = targetAngle * current_speed_mps / dist
 
         return angular_velocity
 
@@ -276,7 +274,7 @@ class PathPlanner(object):
         # either we will reference the starting point as where the car is or at the previous path's end point
         ref_x = car_x
         ref_y = car_y
-        ref_yaw = math.radians(theta) #TODO; BUG FIX
+        ref_yaw = theta #TODO; BUG FIX
 
         # Use two points that make the path tangent to the car
         prev_car_x = car_x - math.cos(ref_yaw)          # This is the same as math.cos(theta) * 1

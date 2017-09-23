@@ -30,9 +30,9 @@ def send(topic, data):
 bridge.register_server(send)
 
 count = 0
-count_length = 40
+count_length = 2
 count2 = 0
-count2_length = 40
+count2_length = 2
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -104,4 +104,4 @@ if __name__ == '__main__':
     # deploy as an eventlet WSGI server
     #eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
 
-    eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
+    eventlet.wsgi.server(eventlet.listen(('', 4567), backlog=200), app)
