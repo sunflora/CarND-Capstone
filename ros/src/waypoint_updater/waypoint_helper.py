@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+
+'''
+LOG:
+    2017.09.24  add map zoning to get a better performance on searching 
+        the nearest waypoint
+'''
+
 import math
 import tf
 from map_zone import MapZone

@@ -92,7 +92,7 @@ class WaypointUpdater(object):
         while not rospy.is_shutdown():
             rate.sleep()
 
-            if self.msg_pose is None or self.msg_base_waypoints is None or self.traffic_waypoint is None:
+            if self.msg_pose is None or self.msg_base_waypoints is None or self.msg_traffic_waypoint is None:
                 continue
 
             self.set_pose()
@@ -105,7 +105,7 @@ class WaypointUpdater(object):
 
             self.nearest_wy_indx = self.wph.find_nearest_index(self.current_position, self.base_waypoints, self.map_zone)
 
-            rospy.logerr("WPUpdater, pose_cb: light_wy: %s car_wy:%s  ", self.traffic_waypoint, self.nearest_wy_indx)
+            #rospy.logerr("WPUpdater, pose_cb: light_wy: %s car_wy:%s  ", self.traffic_waypoint, self.nearest_wy_indx)
 
             #self.traffic_waypoint = -1
  
@@ -169,14 +169,12 @@ class WaypointUpdater(object):
 
         self.base_waypoints = self.base_lane.waypoints
 
-        rospy.logerr('set_base_waypoints')
-
         i=0
         for p in self.base_waypoints:
             self.map_zone.addElement( i, p.pose.pose.position.x, p.pose.pose.position.y)
             i += 1
 
-        rospy.logerr(len(self.map_zone.map_zone))
+        #rospy.logerr(len(self.map_zone.map_zone))
 
         pass
 

@@ -81,7 +81,7 @@ class WaypointLoader(object):
         return waypoints
 
     def publish(self, waypoints):
-        rate = rospy.Rate(1.0/10.0)  #updated per one minute
+        rate = rospy.Rate(1.0/60.0)  #updated per one minute
         #rate = rospy.Rate(40) 
         while not rospy.is_shutdown():
             lane = Lane()
