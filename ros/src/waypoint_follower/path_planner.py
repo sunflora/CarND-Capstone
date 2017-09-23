@@ -67,7 +67,7 @@ class PathPlanner(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(5)
+        rate = rospy.Rate(20)
         while not rospy.is_shutdown():
             #########
             #rospy.logerr("=========================Inside loop, self.current_pose: %s", self.current_pose)
