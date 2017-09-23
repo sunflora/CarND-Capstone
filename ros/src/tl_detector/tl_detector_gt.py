@@ -65,7 +65,7 @@ class TLDetector(object):
         rate = rospy.Rate(2)
         while not rospy.is_shutdown():
  
-            if self.base_waypoints is not None and self.light is not None:
+            if self.base_waypoints is not None and self.lights is not None:
 
                 #rospy.logerr("TLDetectorGT.traffic_cb: base_waypoint is not None")
 
