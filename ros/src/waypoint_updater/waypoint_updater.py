@@ -88,19 +88,21 @@ class WaypointUpdater(object):
                 
                 rospy.logerr("wpu.loop(), current_x {}  self.traffic_wayp {}    tfwp is:{}".format(self.nearest_wy_indx, self.traffic_waypoint, tfwp))
 
+                # Test code
+                '''
                 x = self.current_position.x
                 if (x > 2000.0) or (x < 500.0):
                     self.max_velocity = 15.0
                 else:
                     self.max_velocity = 20.0
-
+                '''
+                self.max_velocity = self.max_velocity
                 if self.traffic_waypoint != -1:
                     if 0 < (self.traffic_waypoint - self.nearest_wy_indx) < BRAKE_DISTANCE:
                         rospy.logerr("WPUpdater, pose_cb: Redlight Alert!  light_wy: %s car_wy:%s  ",self.traffic_waypoint, self.nearest_wy_indx)
                         self.max_velocity = 0
 
                 self.final_lane = self.wph.create_lookahead_lane(self.base_lane, self.nearest_wy_indx, self.final_lane_step, LOOKAHEAD_WPS, self.max_velocity)
-                #rospy.logerr("WPUpdater, pose_cb: car_wy:%s  ", self.nearest_wy_indx)
                 #for i in range(0, len(self.final_lane.waypoints)):
                 #    rospy.logerr("%i: %f, %f", i, self.final_lane.waypoints[i].pose.pose.position.x, self.final_lane.waypoints[i].pose.pose.position.y)
 
