@@ -1,5 +1,6 @@
 import math
 import tf
+from map_zone import MapZone
 
 from styx_msgs.msg import Lane, Waypoint
 
@@ -20,16 +21,28 @@ class WaypointHelper(object):
             p.twist.twist.angular.z = 0.0            
         return lane
 
-    def find_nearest_index(self, current_position, base_waypoints):
-        nearest_distance = 99999999;
+    def find_nearest_index(self, current_position, base_waypoints, map_zone):
+
+        nearest_distance = 99999999
         nearest_index = 0
         index = 0
-        for p in base_waypoints:
-            d = self.get_distance_2D(p.pose.pose.position, current_position)
-            if d < nearest_distance:
-                nearest_distance = d
-                nearest_index = index
-            index = index + 1
+
+        elems = map_zone.getZoneNeighborElements( current_position.x, current_position.y)
+
+        if len(elems) >0:
+            for index in elems:
+                p = base_waypoints[index]
+                d = self.get_distance_2D(p.pose.pose.position, current_position)
+                if d < nearest_distance:
+                    nearest_distance = d
+                    nearest_index = index
+        else:
+            for p in base_waypoints:
+                d = self.get_distance_2D(p.pose.pose.position, current_position)
+                if d < nearest_distance:
+                    nearest_distance = d
+                    nearest_index = index
+                index = index + 1
         return nearest_index+1
 
     def get_distance_2D(self, p1, p2):

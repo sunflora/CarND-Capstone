@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 
+
+'''
+
+
+LOG:
+    2017.09.24 Changed update frequency to 1 minute
+
+'''
+
 import os
 import csv
 import math
@@ -72,7 +81,7 @@ class WaypointLoader(object):
         return waypoints
 
     def publish(self, waypoints):
-        rate = rospy.Rate(0.1)
+        rate = rospy.Rate(1.0/10.0)  #updated per one minute
         #rate = rospy.Rate(40) 
         while not rospy.is_shutdown():
             lane = Lane()

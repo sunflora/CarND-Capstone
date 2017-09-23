@@ -14,8 +14,13 @@ TODO:
  ROS integration has not been tested.
  Twist Command processing is not finished.
 
+LOG:
+    2017.9.24 add threading.Lock and copy.deepcopy for data consistency
+
 '''
 
+import threading
+import copy
 import time
 import math
 import numpy as np
@@ -58,6 +63,16 @@ class PathPlanner(object):
 
         rospy.init_node('path_planner')
 
+        self.pose_lock = threading.Lock()
+        self.final_waypoints_lock = threading.Lock()
+        self.current_velocity_lock = threading.Lock()
+
+        self.msg_pose = None
+        self.msg_final_waypoints = None
+        self.msg_current_velocity = None
+
+        self.final_waypoints_updated = False
+
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size = 1)
         rospy.Subscriber('/final_waypoints', Lane, self.final_waypoints_cb, queue_size = 1)
         rospy.Subscriber('/current_velocity',TwistStamped, self.current_velocity_cb, queue_size = 1)
@@ -67,37 +82,45 @@ class PathPlanner(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(20)
+        rate = rospy.Rate(20.0)
         while not rospy.is_shutdown():
+
+            rate.sleep()
+
+            if (self.msg_pose is None or self.msg_final_waypoints is None or self.msg_current_velocity is None ):
+                continue
+
+            self.set_pose()
+            self.set_current_velocity()
+
+            if self.final_waypoints_updated:
+                self.set_final_waypoints()
+                self.final_waypoints_updated = False
+
             #########
             #rospy.logerr("=========================Inside loop, self.current_pose: %s", self.current_pose)
             #rospy.logerr("=========================Inside loop, self.final_waypoints: %s ", self.final_waypoints)
             #rospy.logerr("=========================Inside loop, self.yaw: %s",self.final_waypoints )
             #rospy.logerr("=========================Inside loop, self.final_waypoints: %s", self.final_waypoints)
 
-            okay2run = self.cw_x is not None and self.cw_y is not None and self.car_x is not None and self.car_y is not None and self.current_pose is not None and self.final_waypoints is not None and self.yaw is not None and self.current_speed is not None
+            #adjust cw_x,cw_y according to the current car position            
+            idx = self.ClosestWaypoint(self.car_x, self.car_y, self.cw_x, self.cw_y)
 
-            if okay2run:
+            if idx > 1:
+                self.cw_x = self.cw_x[idx-1:len(self.cw_x)]
+                self.cw_y = self.cw_y[idx-1:len(self.cw_y)]
+                self.cw_v = self.cw_v[idx-1:len(self.cw_v)]
 
+            #rospy.logerr('----------------- %s', self.yaw)
 
-                #adjust cw_x,cw_y according to the current car position            
-                idx = self.ClosestWaypoint(self.car_x, self.car_y, self.cw_x, self.cw_y)
- 
-                if idx > 1:
-                    self.cw_x = self.cw_x[idx-1:len(self.cw_x)]
-                    self.cw_y = self.cw_y[idx-1:len(self.cw_y)]
-                    self.cw_v = self.cw_v[idx-1:len(self.cw_v)]
+            # self.yaw: unit radian
+            self.path_planning(LOOKAHEAD_WPS, self.car_x, self.car_y, self.yaw, self.current_speed, self.cw_x, self.cw_y, self.cw_v)
 
-                #rospy.logerr('----------------- %s', self.yaw)
+            #self.publish(self.outputTwist(self.setTwist(20.0,0.0)))	
 
-                # self.yaw: unit radian
-                self.path_planning(LOOKAHEAD_WPS, self.car_x, self.car_y, self.yaw, self.current_speed, self.cw_x, self.cw_y, self.cw_v)
+            #rospy.logerr(time.strftime('%X'))
 
-                #self.publish(self.outputTwist(self.setTwist(20.0,0.0)))	
-
-                #rospy.logerr(time.strftime('%X'))
-
-            rate.sleep()
+        return
 
     def setTwist(self, speed, angular_velocity):
         twist = Twist()
@@ -108,21 +131,38 @@ class PathPlanner(object):
         return twist
 
     def pose_cb(self, msg):
+        self.pose_lock.acquire()
+        self.msg_pose = msg.pose
+        self.pose_lock.release()
+
+    def set_pose(self):
         # 1. Get current positions, yaw
-        self.current_pose = msg.pose
+
+        self.pose_lock.acquire() #---------------- acquire -----------
+        self.current_pose = copy.deepcopy(self.msg_pose)
+        self.pose_lock.release() #---------------- release -----------
 
         self.car_x = self.current_pose.position.x
         self.car_y = self.current_pose.position.y
 
         # set the current yaw
-        orientation = msg.pose.orientation
+        orientation = self.current_pose.orientation
         q = [orientation.x, orientation.y, orientation.z, orientation.w]
         _, _, self.yaw = tf.transformations.euler_from_quaternion(q)
 
         return
 
     def final_waypoints_cb(self, msg):
-        self.final_waypoints = msg.waypoints
+        self.final_waypoints_lock.acquire()
+        self.msg_final_waypoints = msg.waypoints
+        self.final_waypoints_lock.release()
+
+        self.final_waypoints_updated = True
+
+    def set_final_waypoints(self):        
+        self.final_waypoints_lock.acquire()
+        self.final_waypoints = copy.deepcopy( self.msg_final_waypoints)
+        self.final_waypoints_lock.release()
 
         self.cw_x = []
         self.cw_y = []
@@ -135,12 +175,21 @@ class PathPlanner(object):
 
         self.maps_delta_s = self.findMapDeltaS(self.cw_x, self.cw_y)
 
-        
-
-
-
         return
     
+    def current_velocity_cb(self, msg):
+        self.current_velocity_lock.acquire()
+        self.msg_current_velocity = msg.twist.linear.x
+        self.current_velocity_lock.release()
+
+    def set_current_velocity(self):    
+        self.current_velocity_lock.acquire()
+        self.current_speed = copy.deepcopy( self.msg_current_velocity)
+        self.current_velocity_lock.release()
+
+        pass
+
+
     def calcTwist(self, cw_x, cw_y, yaw, cmd_velocity):
 
         #TODO:verify whether vehicle is following the path
@@ -227,10 +276,6 @@ class PathPlanner(object):
     def publish(self, twist_cmd):
 
         self.twist_cmd_pub.publish(twist_cmd)
-        pass
-
-    def current_velocity_cb(self, msg):
-        self.current_speed = msg.twist.linear.x
         pass
 
     def path_planning(self, waypoints_size, car_x, car_y, theta, current_speed, maps_x, maps_y, maps_v):

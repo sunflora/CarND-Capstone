@@ -6,8 +6,11 @@ from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 from waypoint_helper import WaypointHelper
+from map_zone import MapZone
 
 import random
+import threading
+import copy
 
 '''
 This node will publish base_lane from the car's current position to some `x` distance ahead.
@@ -22,6 +25,11 @@ current status in `/vehicle/traffic_lights` message. You can use this message to
 as well as to verify your TL classifier.
 
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
+
+LOG:
+    2017.09.24  add threading.Lock and copy.deepcopy for data consistency
+                add MapZone
+
 '''
 
 LOOKAHEAD_WPS = 100 # Number of base_lane we will publish. You can change this number
@@ -48,7 +56,19 @@ class WaypointUpdater(object):
 
         self.wph = WaypointHelper()
 
+        self.map_zone = MapZone() 
+
         rospy.init_node('waypoint_updater')
+
+        self.pose_lock = threading.Lock()
+        self.base_waypoints_lock = threading.Lock()
+        self.traffic_waypoint_lock = threading.Lock()
+
+        self.msg_pose = None
+        self.msg_base_waypoints = None
+        self.msg_traffic_waypoint = None
+
+        self.base_waypoints_updated = False
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size = 1)
         rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb, queue_size = 1)
@@ -68,17 +88,28 @@ class WaypointUpdater(object):
 
 
     def loop(self):
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(2.0)
         while not rospy.is_shutdown():
-         
-            if self.base_waypoints is not None and self.current_position is not None:
-                self.nearest_wy_indx = self.wph.find_nearest_index(self.current_position, self.base_waypoints)
+            rate.sleep()
 
-            #rospy.logerr("WPUpdater, pose_cb: light_wy: %s car_wy:%s  ", self.traffic_waypoint, self.nearest_wy_indx)
+            if self.msg_pose is None or self.msg_base_waypoints is None or self.traffic_waypoint is None:
+                continue
+
+            self.set_pose()
+
+            if self.base_waypoints_updated:
+                self.set_base_waypoints()
+                self.base_waypoints_updated = False
+
+            self.set_traffic_waypoint()
+
+            self.nearest_wy_indx = self.wph.find_nearest_index(self.current_position, self.base_waypoints, self.map_zone)
+
+            rospy.logerr("WPUpdater, pose_cb: light_wy: %s car_wy:%s  ", self.traffic_waypoint, self.nearest_wy_indx)
 
             #self.traffic_waypoint = -1
  
-            okay2run = self.dbw_enabled and self.base_waypoints is not None and self.traffic_waypoint is not None and self.nearest_wy_indx is not None
+            okay2run = self.dbw_enabled and self.nearest_wy_indx is not None
             if okay2run:
                 
                 tfwp = self.traffic_waypoint
@@ -107,41 +138,66 @@ class WaypointUpdater(object):
                 #for i in range(0, len(self.final_lane.waypoints)):
                 #    rospy.logerr("%i: %f, %f", i, self.final_lane.waypoints[i].pose.pose.position.x, self.final_lane.waypoints[i].pose.pose.position.y)
 
-                self.final_waypoints_pub.publish(self.final_lane)
-            
-            rate.sleep() 
-
-    def traffic_waypoint_cb(self, msg):
-
-
-        if self.traffic_waypoint != msg.data:
-            self.traffic_waypoint = msg.data
-            #rospy.logerr("WPUpdater.traffic_waypoint_cb, light_wy is %s", self.traffic_waypoint )
-        pass
+                self.final_waypoints_pub.publish(self.final_lane) 
 
     def dbw_cb(self, msg):
         self.dbw_enabled = msg.data
         pass
 
     def pose_cb(self, msg):
-        '''
-        Callback for getting the current pose of the car.
-        '''
+        self.pose_lock.acquire()
+        self.msg_pose = msg.pose
+        self.pose_lock.release()
 
-
-        self.current_position = msg.pose.position
-
+    def set_pose(self):
+        self.pose_lock.acquire() #---------------- acquire -----------
+        self.current_position = copy.deepcopy(self.msg_pose.position)
+        self.pose_lock.release() #---------------- release -----------
         pass
 
     def base_waypoints_cb(self, msg):
-        self.base_lane = msg
-        self.base_waypoints = msg.waypoints
+        self.base_waypoints_lock.acquire()
+        self.msg_base_waypoints = msg
+        self.base_waypoints_lock.release()
+
+        self.base_waypoints_updated = True
+
+    def set_base_waypoints(self):    
+        self.base_waypoints_lock.acquire()
+        self.base_lane = copy.deepcopy(self.msg_base_waypoints)
+        self.base_waypoints_lock.release()
+
+        self.base_waypoints = self.base_lane.waypoints
+
+        rospy.logerr('set_base_waypoints')
+
+        i=0
+        for p in self.base_waypoints:
+            self.map_zone.addElement( i, p.pose.pose.position.x, p.pose.pose.position.y)
+            i += 1
+
+        rospy.logerr(len(self.map_zone.map_zone))
+
         pass
+
+    def traffic_waypoint_cb(self, msg):
+        self.traffic_waypoint_lock.acquire()
+        self.msg_traffic_waypoint = msg.data
+        self.traffic_waypoint_lock.release()   
+
+    def set_traffic_waypoint(self):    
+        self.traffic_waypoint_lock.acquire()
+        if self.traffic_waypoint != self.msg_traffic_waypoint:
+            self.traffic_waypoint = copy.deepcopy(self.msg_traffic_waypoint)
+        self.traffic_waypoint_lock.release()
+
+        #rospy.logerr("WPUpdater.traffic_waypoint_cb, light_wy is %s", self.traffic_waypoint )
+        pass
+
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
-
 
 if __name__ == '__main__':
     try:
