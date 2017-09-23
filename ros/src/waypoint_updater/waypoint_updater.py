@@ -87,7 +87,7 @@ class WaypointUpdater(object):
                 #tfwp = self.get_traffic_waypoint(self.nearest_wy_indx)
                 #self.traffic_waypoint = tfwp if random.random() > 0.2 else -1
                 
-                rospy.logerr("wpu.loop(), current_x {}  self.traffic_wayp {}    tfwp is:{}".format(self.nearest_wy_indx, self.traffic_waypoint, tfwp))
+                # rospy.logerr("wpu.loop(), current_x {}  self.traffic_wayp {}    tfwp is:{}".format(self.nearest_wy_indx, self.traffic_waypoint, tfwp))
 
                 # Test code
                 '''
@@ -100,7 +100,7 @@ class WaypointUpdater(object):
                 self.max_velocity = TARGET_VELOCITY_MPS
                 if self.traffic_waypoint != -1:
                     if  BRAKE_LIMIT_LOWER < (self.traffic_waypoint - self.nearest_wy_indx) < BRAKE_LIMIT_UPPER:
-                        rospy.logerr("WPUpdater, pose_cb: Redlight Alert!  light_wy: %s car_wy:%s  ",self.traffic_waypoint, self.nearest_wy_indx)
+                        #rospy.logerr("WPUpdater, loop: Redlight Alert!  light_wy: %s car_wy:%s  ",self.traffic_waypoint, self.nearest_wy_indx)
                         self.max_velocity = 0
 
                 self.final_lane = self.wph.create_lookahead_lane(self.base_lane, self.nearest_wy_indx, self.final_lane_step, LOOKAHEAD_WPS, self.max_velocity)

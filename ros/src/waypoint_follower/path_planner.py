@@ -238,7 +238,7 @@ class PathPlanner(object):
 
         # Main car's localization Data
         car_s, car_d, car_index = self.getFrenet(car_x, car_y, theta, maps_x, maps_y)
-        rospy.logerr("path_planner, path_planning: car_index: %s", car_index)
+        #logerr("path_planner, path_planning: car_index: %s", car_index)
         cmd_speed = maps_v[car_index]
 
         maps_s, maps_d = self.getMapsS(car_index, maps_x, maps_y)
