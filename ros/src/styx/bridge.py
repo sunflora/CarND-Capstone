@@ -164,14 +164,9 @@ class Bridge(object):
         self.publishers['lidar'].publish(self.create_point_cloud_message(zip(data['lidar_x'], data['lidar_y'], data['lidar_z'])))
 
     def publish_traffic(self, data):
-
-
         x, y, z = data['light_pos_x'], data['light_pos_y'], data['light_pos_z'],
         yaw = [math.atan2(dy, dx) for dx, dy in zip(data['light_pos_dx'], data['light_pos_dy'])]
         status = data['light_state']
-        if self.traffic_light != status[0]:
-            rospy.loginfo("===  bridge.py::publish_traffic status change: %s ====", status[0])
-            self.traffic_light = status[0]
 
         lights = TrafficLightArray()
         header = Header()
@@ -179,7 +174,6 @@ class Bridge(object):
         header.frame_id = 'world'
         lights.header = header
         lights.lights = [self.create_light(*e) for e in zip(x, y, z, yaw, status)]
-
         self.publishers['trafficlights'].publish(lights)
 
     def publish_dbw_status(self, data):

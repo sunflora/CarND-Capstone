@@ -82,7 +82,7 @@ class PathPlanner(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(20.0)
+        rate = rospy.Rate(10.0)
         while not rospy.is_shutdown():
 
             rate.sleep()

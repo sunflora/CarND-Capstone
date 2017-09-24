@@ -88,7 +88,7 @@ class WaypointUpdater(object):
 
 
     def loop(self):
-        rate = rospy.Rate(2.0)
+        rate = rospy.Rate(4.0)
         while not rospy.is_shutdown():
             rate.sleep()
 
