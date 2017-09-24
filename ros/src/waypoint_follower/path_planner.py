@@ -506,7 +506,7 @@ class PathPlanner(object):
             next_wp = 1
 
         prev_wp = next_wp - 1
-        
+
         try:
             n_x = maps_x[next_wp] - maps_x[prev_wp]
             n_y = maps_y[next_wp] - maps_y[prev_wp]
@@ -520,6 +520,7 @@ class PathPlanner(object):
             pass
 
 
+        '''
         # find the projection of x onto n
         proj_norm = (x_x * n_x + x_y * n_y) / (n_x * n_x + n_y * n_y)
         proj_x = proj_norm * n_x
@@ -536,6 +537,9 @@ class PathPlanner(object):
 
         if (centerToPos <= centerToRef):
             frenet_d *= -1
+        '''
+
+        frenet_d = self.get_frenet_d(n_x, n_y, x_x, x_y)
 
         # calculate s value
         frenet_s = 0
@@ -546,6 +550,26 @@ class PathPlanner(object):
 
         return frenet_s, frenet_d, next_wp
 
+    def get_frenet_d(self, n_x, n_y, x_x, x_y):
+
+        proj_norm = (x_x * n_x + x_y * n_y) / (n_x * n_x + n_y * n_y)
+        proj_x = proj_norm * n_x
+        proj_y = proj_norm * n_y
+
+        frenet_d = distance(x_x, x_y, proj_x, proj_y)
+
+        point_right_x = n_y
+        point_right_y = - n_x
+
+        point_left_x = -n_y
+        point_left_y = n_x
+
+        dist_right_sq = (x_x - point_right_x) ** 2.0 + (x_y - point_right_y) ** 2.0
+        dist_left_sq = (x_x - point_left_x) ** 2.0 + (x_y - point_left_y) ** 2.0
+
+        if dist_right_sq < dist_left_sq:  # positive means d is on the left side
+            return -frenet_d
+        return frenet_d
 
     # Transform from Frenet s,d coordinates to Cartesian x,y
     # vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
