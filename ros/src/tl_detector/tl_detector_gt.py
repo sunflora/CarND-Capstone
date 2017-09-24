@@ -215,13 +215,6 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
         """
 
-
-
-        '''
-        for i in range(0, len(self.lights_waypoints)):
-            rospy.logerr("lights_waypoints[%s]:%s",i, self.lights_waypoints[i])
-        '''
-
         self.pose_nearest_waypoint = self.tlh.get_nearest_waypoint(self.pose_position, self.base_waypoints, self.map_zone)
         i = self.get_nearest_light_wp( self.pose_nearest_waypoint, self.lights_waypoints)
 
