@@ -517,10 +517,8 @@ class PathPlanner(object):
             for i in range(0,len(maps_x)):
                 rospy.logerr('{},{}'.format(maps_x[i],maps_y[i]))
             #rospy.logerr("Path_Planning, getFrenet, Exception: next_wp: %s, e: %s, sys info: %s", next_wp, e, sys.exc_info()[0])
-            pass
+            pass        
 
-
-        '''
         # find the projection of x onto n
         proj_norm = (x_x * n_x + x_y * n_y) / (n_x * n_x + n_y * n_y)
         proj_x = proj_norm * n_x
@@ -529,35 +527,6 @@ class PathPlanner(object):
         frenet_d = self.distance(x_x, x_y, proj_x, proj_y)
 
         # see if d value is positive or negative by comparing it to a center point
-
-        center_x = 1000 - maps_x[prev_wp]
-        center_y = 2000 - maps_y[prev_wp]
-        centerToPos = self.distance(center_x, center_y, x_x, x_y)
-        centerToRef = self.distance(center_x, center_y, proj_x, proj_y)
-
-        if (centerToPos <= centerToRef):
-            frenet_d *= -1
-        '''
-
-        frenet_d = self.get_frenet_d(n_x, n_y, x_x, x_y)
-
-        # calculate s value
-        frenet_s = 0
-        for i in range(0, prev_wp):
-            frenet_s += self.maps_delta_s[i]
-
-        frenet_s += self.distance(0, 0, proj_x, proj_y)
-
-        return frenet_s, frenet_d, next_wp
-
-    def get_frenet_d(self, n_x, n_y, x_x, x_y):
-
-        proj_norm = (x_x * n_x + x_y * n_y) / (n_x * n_x + n_y * n_y)
-        proj_x = proj_norm * n_x
-        proj_y = proj_norm * n_y
-
-        frenet_d = distance(x_x, x_y, proj_x, proj_y)
-
         point_right_x = n_y
         point_right_y = - n_x
 
@@ -568,8 +537,17 @@ class PathPlanner(object):
         dist_left_sq = (x_x - point_left_x) ** 2.0 + (x_y - point_left_y) ** 2.0
 
         if dist_right_sq < dist_left_sq:  # positive means d is on the left side
-            return -frenet_d
-        return frenet_d
+            frenet_d = -frenet_d
+        
+        # calculate s value
+        frenet_s = 0
+        for i in range(0, prev_wp):
+            frenet_s += self.maps_delta_s[i]
+
+        frenet_s += self.distance(0, 0, proj_x, proj_y)
+
+        return frenet_s, frenet_d, next_wp
+
 
     # Transform from Frenet s,d coordinates to Cartesian x,y
     # vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
