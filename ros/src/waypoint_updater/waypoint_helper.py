@@ -13,13 +13,24 @@ from map_zone import MapZone
 from styx_msgs.msg import Lane, Waypoint
 
 class WaypointHelper(object):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, is_looped_waypoints = False):
+
+        self.is_looped_waypoints = is_looped_waypoints
+
         pass
 
     def create_lookahead_lane(self, base_lane, begin_index, step, size, velocity):
         lane = Lane()
         lane.header.frame_id = base_lane.header.frame_id
-        lane.waypoints = base_lane.waypoints[begin_index: begin_index + size: step]
+
+        end_index = min( begin_index+size, len(base_lane.waypoints)-1)
+
+        lane.waypoints = base_lane.waypoints[begin_index: end_index : step]
+
+        if begin_index + size > end_index :
+            end_index = begin_index + size - end_index
+            lane.waypoints += base_lane.waypoints[0:end_index:step]
+
         for p in lane.waypoints:
             p.twist.twist.linear.x = velocity 
             p.twist.twist.linear.y = 0.0

@@ -32,6 +32,7 @@ from std_msgs.msg import Int32
 from styx_msgs.msg import Lane, Waypoint
 from geometry_msgs.msg import Twist, TwistStamped, PoseStamped
 
+import sys
 import tf
 
 
@@ -106,6 +107,9 @@ class PathPlanner(object):
             #adjust cw_x,cw_y according to the current car position            
             idx = self.ClosestWaypoint(self.car_x, self.car_y, self.cw_x, self.cw_y)
 
+            if len(self.cw_x) < 40:
+                rospy.logerr('idx: {}, {},{} len:{}'.format(idx, self.car_x, self.car_y, len(self.cw_x)))
+
             if idx > 1:
                 self.cw_x = self.cw_x[idx-1:len(self.cw_x)]
                 self.cw_y = self.cw_y[idx-1:len(self.cw_y)]
@@ -113,7 +117,11 @@ class PathPlanner(object):
 
             #rospy.logerr('----------------- %s', self.yaw)
 
+            if len(self.cw_x) < 40:
+                rospy.logerr('{},{} len:{}'.format(self.car_x, self.car_y, len(self.cw_x)))
+
             # self.yaw: unit radian
+            #rospy.logerr(len(self.cw_x))
             self.path_planning(LOOKAHEAD_WPS, self.car_x, self.car_y, self.yaw, self.current_speed, self.cw_x, self.cw_y, self.cw_v)
 
             #self.publish(self.outputTwist(self.setTwist(20.0,0.0)))	
@@ -450,16 +458,16 @@ class PathPlanner(object):
         for i in range(len(maps_x)-1, 0, -1):
             map_x = maps_x[i]
             map_y = maps_y[i]
-            dist = self.distance(x, y, map_x, map_y);
+            dist = self.distance(x, y, map_x, map_y)
             if (dist < closestLen):
                 closestLen = dist
                 closestWaypoint = i
 
-        return closestWaypoint;
+        return closestWaypoint
 
     # int NextWaypoint(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y)
     def NextWaypoint(self, x, y, theta, maps_x, maps_y):
-        closestWaypoint = self.ClosestWaypoint(x, y, maps_x, maps_y);
+        closestWaypoint = self.ClosestWaypoint(x, y, maps_x, maps_y)
         map_x = maps_x[closestWaypoint]
         map_y = maps_y[closestWaypoint]
 
@@ -486,44 +494,29 @@ class PathPlanner(object):
 
         return nextWaypoints_x, nextWaypoints_y
 
-
-    # If the course is a loop and there are overlapping waypoints, remove the duplicate points so the car may drive continuously
-    def cleanseWaypoints(self, is_loop, maps_x, maps_y, start_duplicate = -1):
-        if is_loop is not True:
-            return
-
-        if start_duplicate == -1:
-            #find start duplicate
-            search_size = 200  #number of points to search
-            map_size = len(maps_x)
-            begin_search = map_size - search_size
-            start_duplicate = self.ClosestWaypoint(maps_x[0], maps_y[0], maps_x[begin_search:map_size], maps_y[begin_search:map_size])
-            start_duplicate = begin_search + start_duplicate
-            #print("origin point: ", maps_x[0], maps_y[0])
-            #print("duplicate point:", maps_x[start_duplicate], maps_y[start_duplicate])
-            #print("start_duplicate found at index: ", start_duplicate)
-        return maps_x[0:start_duplicate - 1], maps_y[0:start_duplicate - 1]
-
     # Transform from Cartesian x,y coordinates to Frenet s,d coordinates
     # vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y)
     def getFrenet(self, x, y, theta, maps_x, maps_y):
 
         next_wp = self.NextWaypoint(x, y, theta, maps_x, maps_y)
 
+
+        if next_wp == 0:
+            rospy.logerr('FN: n_wp {}'.format(next_wp))
+            next_wp = 1
+
         prev_wp = next_wp - 1
-        if (next_wp == 0):
-            prev_wp = maps_x.size() - 1
-
-        if next_wp >= len(maps_x):
-            pass
-
+        
         try:
             n_x = maps_x[next_wp] - maps_x[prev_wp]
             n_y = maps_y[next_wp] - maps_y[prev_wp]
             x_x = x - maps_x[prev_wp]
             x_y = y - maps_y[prev_wp]
         except Exception as e:
-            rospy.logerr("Path_Planning, getFrenet, Exception: next_wp: %s, e: %s, sys info: %s", next_wp, e.value, sys.exc_info()[0])
+            rospy.logerr('{}:{}'.format(next_wp,prev_wp))
+            for i in range(0,len(maps_x)):
+                rospy.logerr('{},{}'.format(maps_x[i],maps_y[i]))
+            #rospy.logerr("Path_Planning, getFrenet, Exception: next_wp: %s, e: %s, sys info: %s", next_wp, e, sys.exc_info()[0])
             pass
 
 
@@ -542,14 +535,14 @@ class PathPlanner(object):
         centerToRef = self.distance(center_x, center_y, proj_x, proj_y)
 
         if (centerToPos <= centerToRef):
-            frenet_d *= -1;
+            frenet_d *= -1
 
         # calculate s value
-        frenet_s = 0;
+        frenet_s = 0
         for i in range(0, prev_wp):
             frenet_s += self.maps_delta_s[i]
 
-        frenet_s += self.distance(0, 0, proj_x, proj_y);
+        frenet_s += self.distance(0, 0, proj_x, proj_y)
 
         return frenet_s, frenet_d, next_wp
 

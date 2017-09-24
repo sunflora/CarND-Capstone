@@ -32,11 +32,13 @@ LOG:
 
 '''
 
-LOOKAHEAD_WPS = 100 # Number of base_lane we will publish. You can change this number
+LOOKAHEAD_WPS = 200 # Number of base_lane we will publish. You can change this number
 MPH_2_mps = 0.44704
-TARGET_VELOCITY_MPS = 10 
+TARGET_VELOCITY_MPS = 20 
 BRAKE_LIMIT_LOWER = 15
 BRAKE_LIMIT_UPPER = 40
+
+LOOPED_WAYPOINTS = True
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -51,10 +53,12 @@ class WaypointUpdater(object):
         self.traffic_waypoint = None
         self.current_position = None
 
+        self.looped_starting_wp_index = None
+
         self.temp_array = [500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
 
 
-        self.wph = WaypointHelper()
+        self.wph = WaypointHelper(LOOPED_WAYPOINTS)
 
         self.map_zone = MapZone() 
 
@@ -99,6 +103,8 @@ class WaypointUpdater(object):
 
             if self.base_waypoints_updated:
                 self.set_base_waypoints()
+                if LOOPED_WAYPOINTS:
+                    self.find_looped_starting_wp_index()
                 self.base_waypoints_updated = False
 
             self.set_traffic_waypoint()
@@ -196,6 +202,57 @@ class WaypointUpdater(object):
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
+
+
+    # find the looped starting wp in the first 200 waypoints
+    def find_looped_starting_wp_index(self):
+        l = len(self.base_waypoints)
+        q = self.base_waypoints[l-1]
+
+        elems = self.map_zone.getZoneNeighborElements(q.pose.pose.position.x, q.pose.pose.position.y)
+
+        nearest_distance = 99999999
+        nearest_index = 0
+        index = 0
+
+        #rospy.logerr('l:{} elems:{}'.format(l,elems))
+
+        if len(elems) >0:
+            for index in elems:
+                if index > 200:
+                    continue
+                p = self.base_waypoints[index]
+                d = self.wph.get_distance_2D(p.pose.pose.position, q.pose.pose.position)
+                if d < nearest_distance:
+                    nearest_distance = d
+                    nearest_index = index
+        else:
+            rospy.logerr('-- wp_up: cannot find any neighbor element')
+
+        self.looped_starting_wp_index = nearest_index
+
+        #rospy.logerr('looped_idx:{}'.format(self.looped_starting_wp_index))
+
+
+
+    # If the course is a loop and there are overlapping waypoints, remove the duplicate points so the car may drive continuously
+    def cleanseWaypoints(self, is_loop, maps_x, maps_y, start_duplicate = -1):
+        if is_loop is not True:
+            return
+
+        if start_duplicate == -1:
+            #find start duplicate
+            search_size = 200  #number of points to search
+            map_size = len(maps_x)
+            begin_search = map_size - search_size
+            start_duplicate = self.ClosestWaypoint(maps_x[0], maps_y[0], maps_x[begin_search:map_size], maps_y[begin_search:map_size])
+            start_duplicate = begin_search + start_duplicate
+            #print("origin point: ", maps_x[0], maps_y[0])
+            #print("duplicate point:", maps_x[start_duplicate], maps_y[start_duplicate])
+            #print("start_duplicate found at index: ", start_duplicate)
+        return maps_x[0:start_duplicate - 1], maps_y[0:start_duplicate - 1]
+
+
 
 if __name__ == '__main__':
     try:
