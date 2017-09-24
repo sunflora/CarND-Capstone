@@ -22,17 +22,9 @@ def connect(sid, environ):
     print("connect ", sid)
 
 def send(topic, data):
-    s = 1
     msgs[topic] = data
-    #rospy.logerr("======  send: topic %s", topic)
-    #sio.emit(topic, data=json.dumps(data), skip_sid=True)
 
 bridge.register_server(send)
-
-count = 0
-count_length = 2
-count2 = 0
-count2_length = 2
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -43,25 +35,14 @@ def telemetry(sid, data):
         bridge.publish_dbw_status(dbw_enable)
         #rospy.logerr("======  telemetry: dbw_enable %s", dbw_enable)
     bridge.publish_odometry(data)
-    if count == count_length:
-        #send_control(0.0, 0.5, 1)
-        count = 0
-        for i in range(len(msgs)):
-            topic, data = msgs.popitem()
-            #rospy.logerr("======  telemetry: %s %s", topic, data)
-            sio.emit(topic, data=data, ignore_queue=True)
 
-    count = count + 1    
+    for i in range(len(msgs)):
+        topic, data = msgs.popitem()
+        #rospy.logerr("======  telemetry: %s %s", topic, data)
+        sio.emit(topic, data=data, ignore_queue=True)
 
 @sio.on('control')
 def control(sid, data):
-    return
-
-    global count2
-    if count2 == count2_length:
-        rospy.logerr("server.py. control data:%s", data)
-        count2 = 0
-    count2 = count2 + 1
     #bridge.publish_controls(data)
     pass
 
@@ -71,7 +52,7 @@ def obstacle(sid, data):
     pass
 
 @sio.on('lidar')
-def obstacle(sid, data):
+def lidar(sid, data):
     #bridge.publish_lidar(data)
     pass
 
@@ -83,7 +64,6 @@ def trafficlights(sid, data):
 
 @sio.on('image')
 def image(sid, data):
-    global dbw_enable
     #bridge.publish_camera_signal(dbw_enable)
     # TODO: add back the actual camera image publisher
     #bridge.publish_camera(data)
@@ -102,6 +82,5 @@ if __name__ == '__main__':
     app = socketio.Middleware(sio, app)
 
     # deploy as an eventlet WSGI server
-    #eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
-
+    # increase backlog value due to socket performance issues
     eventlet.wsgi.server(eventlet.listen(('', 4567), backlog=1000), app)

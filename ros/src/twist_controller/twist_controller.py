@@ -12,7 +12,7 @@ ANGULAR_PID_MIN = -0.4
 ANGULAR_PID_MAX = 0.35
 ACCEL_SENSITIVITY = 0.06
 
-SAMPLE_TIME = 0.5 # sample time for PID
+SAMPLE_TIME = 0.1 #TODO: It's related to the publishing frequency of the twist command.
 
 class TwistController(object):
     def __init__(self):

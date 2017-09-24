@@ -13,8 +13,7 @@ from yaw_controller import YawController
 mps_2_MPH = 1.0 / 0.44704
 MPH_2_mps = 0.44704
 
-TARGET_SPEED = 10  #unit: MPH, a.k.a. target_linear_velocity
-min_speed = 5.0    #TODO: adjust this variable
+min_speed = 5.0    #TODO: May need to adjust this variable
 
 '''
 You can build this node only after you have built (or partially built) the `waypoint_updater` node.
@@ -73,32 +72,24 @@ class DBWNode(object):
         self.throttle_pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
         self.brake_pub = rospy.Publisher('/vehicle/brake_cmd', BrakeCmd, queue_size=1)
 
-        # TODO: Create `TwistController` object
         self.controller = TwistController() #(<Arguments you wish to provide>)
         #max_steer_angle is half as in yaw_controller, we have range of (-1* max_steer_angle to max_steer_angle)
 
         self.controller.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle / 2.)
 
-        # TODO: Subscribe to all the topics you need to
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/current_velocity',TwistStamped, self.velocity_cb)
         rospy.Subscriber('/vehicle/dbw_enabled',Bool, self.dbw_cb)
 
-
-        rospy.spin()
-
-        #self.loop()  # ===> changing to spin, publishing cmd right away
+        rospy.spin() # ===> use spin, publishing cmd right away in twist_cb
 
     def dbw_cb(self, msg):
         if (self.dbw_enabled != msg.data):
             self.dbw_enabled = msg.data
-            #rospy.logerr("self.dbw_enabled is: %s", self.dbw_enabled)
         pass
 
     def velocity_cb(self, msg):
         self.current_linear_velocity = msg.twist.linear.x
-        #if (self.current_linear_velocity > 0.01):
-        #    rospy.logerr("self.current_linear_velocity: %s", self.current_linear_velocity)
         self.current_angular_velocity = msg.twist.angular.z
         pass
 
@@ -106,43 +97,19 @@ class DBWNode(object):
         self.target_linear_velocity = msg.twist.linear.x
         self.target_angular_velocity = msg.twist.angular.z	
 
-        #rospy.logerr('dbw_node.twist_cb:{: f}\t{: f}'.format(self.target_linear_velocity, self.target_angular_velocity))
-
         target_linear_velocity = self.target_linear_velocity * MPH_2_mps
 
-        #TODO:
         if self.dbw_enabled:  #<dbw is enabled>:
             throttle, brake, steer = self.controller.control(self.current_linear_velocity, target_linear_velocity, self.steering_sensitivity, self.target_angular_velocity)
 
             self.publish(throttle, brake, steer)
 
-            #rospy.logerr('dbw_node:{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
+            #rospy.loginfo('dbw_node:{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
     
         pass
 
-    '''
-    def loop(self):
-        rate = rospy.Rate(0.2) # 50Hz
-        while not rospy.is_shutdown():
-            # TODO: Get predicted throttle, brake, and steering using `twist_controller`
-            # You should only publish the control commands if dbw is enabled
-            # throttle, brake, steering = self.controller.control(<proposed linear velocity>,
-            #                                                     <proposed angular velocity>,
-            #                                                     <current linear velocity>,
-            #                                                     <dbw status>,
-            #                                                     <any other argument you need>)
-            if self.dbw_enabled:  #<dbw is enabled>:
-                throttle, brake, steer = self.controller.control(self.current_linear_velocity, self.target_linear_velocity, self.steering_sensitivity, self.target_angular_velocity)
-
-                self.publish(throttle, brake, steer)
-
-                rospy.logerr('{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
-
-            rate.sleep()
-    '''
 
     def publish(self, throttle, brake, steer):
-        #rospy.logerr("==== dbw_node.publish ==== throttle: %s", throttle)
 
         scmd = SteeringCmd()
         scmd.enable = True

@@ -35,14 +35,10 @@ from geometry_msgs.msg import Twist, TwistStamped, PoseStamped
 import sys
 import tf
 
-
 RADIUS_MAX = 9.0e10
 KAPPA_MIN  = 1.0/RADIUS_MAX
 
 LOOKAHEAD_WPS = 30  # 90 meters 30 segments
-
-#TODO: testing only
-TARGET_SPEED = 10.0  #unit: MPH, a.k.a. target_linear_velocity
 
 LANE = 0 # left lane: -1, right lane: +1
 
@@ -98,35 +94,22 @@ class PathPlanner(object):
                 self.set_final_waypoints()
                 self.final_waypoints_updated = False
 
-            #########
-            #rospy.logerr("=========================Inside loop, self.current_pose: %s", self.current_pose)
-            #rospy.logerr("=========================Inside loop, self.final_waypoints: %s ", self.final_waypoints)
-            #rospy.logerr("=========================Inside loop, self.yaw: %s",self.final_waypoints )
-            #rospy.logerr("=========================Inside loop, self.final_waypoints: %s", self.final_waypoints)
-
             #adjust cw_x,cw_y according to the current car position            
             idx = self.ClosestWaypoint(self.car_x, self.car_y, self.cw_x, self.cw_y)
 
-            if len(self.cw_x) < 40:
-                rospy.logerr('idx: {}, {},{} len:{}'.format(idx, self.car_x, self.car_y, len(self.cw_x)))
+            # if len(self.cw_x) < 40:
+            #     rospy.logerr('idx: {}, {},{} len:{}'.format(idx, self.car_x, self.car_y, len(self.cw_x)))
 
             if idx > 1:
                 self.cw_x = self.cw_x[idx-1:len(self.cw_x)]
                 self.cw_y = self.cw_y[idx-1:len(self.cw_y)]
                 self.cw_v = self.cw_v[idx-1:len(self.cw_v)]
 
-            #rospy.logerr('----------------- %s', self.yaw)
-
-            if len(self.cw_x) < 40:
-                rospy.logerr('{},{} len:{}'.format(self.car_x, self.car_y, len(self.cw_x)))
+            # if len(self.cw_x) < 40:
+            #     rospy.logerr('{},{} len:{}'.format(self.car_x, self.car_y, len(self.cw_x)))
 
             # self.yaw: unit radian
-            #rospy.logerr(len(self.cw_x))
             self.path_planning(LOOKAHEAD_WPS, self.car_x, self.car_y, self.yaw, self.current_speed, self.cw_x, self.cw_y, self.cw_v)
-
-            #self.publish(self.outputTwist(self.setTwist(20.0,0.0)))	
-
-            #rospy.logerr(time.strftime('%X'))
 
         return
 
@@ -264,21 +247,6 @@ class PathPlanner(object):
         twistCmd.twist = twist
         twistCmd.header.stamp = rospy.Time.now()
 
-        # v = twist.linear.x
-        # omega = twist.angular.z
-        #
-        # if math.fabs(omega) < ERROR:
-        #     return twistCmd
-        #
-        # max_v = g_lateral_accel_limit / omega
-        #
-        # a = v * omega
-
-        #rospy.ROS_INFO("lateral accel = %lf", a)
-
-        # twistCmd.twist.linear.x = max_v if (math.fabs(a) > g_lateral_accel_limit) else v
-        # twistCmd.twist.angular.z = omega
-
         return twistCmd
 
     def publish(self, twist_cmd):
@@ -288,28 +256,16 @@ class PathPlanner(object):
 
     def path_planning(self, waypoints_size, car_x, car_y, theta, current_speed, maps_x, maps_y, maps_v):
 
-
-        # Main car's localization Data
+        # Main car's local data
         car_s, car_d, car_index = self.getFrenet(car_x, car_y, theta, maps_x, maps_y)
         #logerr("path_planner, path_planning: car_index: %s", car_index)
         cmd_speed = maps_v[car_index]
 
         maps_s, maps_d = self.getMapsS(car_index, maps_x, maps_y)
 
-
-        '''
-        testX, testY = self.getXY(0.,0, maps_s, maps_x, maps_y)
-        testX, testY = self.getXY(30,0, maps_s, maps_x, maps_y)
-        testX, testY = self.getXY(60,0, maps_s, maps_x, maps_y)
-        testX, testY = self.getXY(90,0, maps_s, maps_x, maps_y)
-        '''
-
         map_waypoints_s = maps_s
         map_waypoints_x = maps_x
         map_waypoints_y = maps_y
-
-
-        #ref_vel = min(car_speed,10.0)  #limit to 10 miles/hr #TODO: multiply by factor??
 
         # Create a list of widely spaced (x,y) waypoints, evenly spaced at 30m
         # Later we will interpolate these waypoints with spline and fill it with
@@ -321,7 +277,7 @@ class PathPlanner(object):
         # either we will reference the starting point as where the car is or at the previous path's end point
         ref_x = car_x
         ref_y = car_y
-        ref_yaw = theta #TODO; BUG FIX
+        ref_yaw = theta
 
         # Use two points that make the path tangent to the car
         prev_car_x = car_x - math.cos(ref_yaw)          # This is the same as math.cos(theta) * 1
@@ -366,7 +322,6 @@ class PathPlanner(object):
         next_x_vals = []
         next_y_vals = []
 
-
         # Calculate how to breakup spline points so that we travel at our desired reference velocity
 
         spline_s = [-1, 0, 30, 60, 90]
@@ -378,15 +333,11 @@ class PathPlanner(object):
 
         # break the spline into 30 segments
         xs = np.linspace(0, 90, 30)
-        #plt.figure(figsize = (6.5, 4))
-        #plt.plot(cs(xs)[:, 0], cs(xs)[:, 1], label='spline')
-        #plt.plot(ptsx, ptsy)
 
         spoints = cs(xs)
 
         # Fill out the rest of our path planner after filling it with previous points, here we will always output waypoints_size points
         for i in range(1, len(xs)):
-            #N = (target_dist / (0.02 * ref_vel / 2.24))
             x_point = spoints[i][0]
             y_point = spoints[i][1]
 
@@ -410,19 +361,6 @@ class PathPlanner(object):
 
         return
 
-    # the s is assigned to zero for all the points before the current car position
-    def getMapsS_(self, car_index, maps_x, maps_y):
-        # origin (s,d)
-        maps_s = [0.0]
-        maps_d = [0.0]
-        map_s_accu = 0.0
-
-        for i in range(1, len(maps_x)):
-            if i > car_index:
-                map_s_accu = map_s_accu  + self.maps_delta_s[i]
-            maps_s.append(map_s_accu)
-            maps_d.append(0.0)
-        return maps_s, maps_d
 
     def getMapsS(self, car_index, maps_x, maps_y):
         # origin (s,d)
@@ -443,11 +381,9 @@ class PathPlanner(object):
              deltaS.append(delta)
         return deltaS
 
-    # double distance(double x1, double y1, double x2, double y2)
     def distance(self, x1, y1, x2, y2):
         d = math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
         return d
-
 
     # int ClosestWaypoint(double x, double y, vector<double> maps_x, vector<double> maps_y)
     def ClosestWaypoint(self, x, y, maps_x, maps_y):
@@ -499,7 +435,6 @@ class PathPlanner(object):
     def getFrenet(self, x, y, theta, maps_x, maps_y):
 
         next_wp = self.NextWaypoint(x, y, theta, maps_x, maps_y)
-
 
         if next_wp == 0:
             rospy.logerr('FN: n_wp {}'.format(next_wp))
@@ -582,7 +517,6 @@ class PathPlanner(object):
         y = seg_y + d * math.sin(perp_heading)
 
         return x, y
-
 
 
 if __name__ == '__main__':
