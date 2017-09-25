@@ -34,9 +34,9 @@ LOG:
 
 LOOKAHEAD_WPS = 200 # Number of base_lane we will publish. You can change this number
 MPH_2_mps = 0.44704
-TARGET_VELOCITY_MPS = 10 
-BRAKE_LIMIT_LOWER = 15
-BRAKE_LIMIT_UPPER = 40
+TARGET_VELOCITY_MPS = 20
+BRAKE_LIMIT_LOWER = 1
+BRAKE_LIMIT_UPPER = 20
 
 LOOPED_WAYPOINTS = True
 
@@ -135,12 +135,8 @@ class WaypointUpdater(object):
                     self.max_velocity = 20.0
                 '''
                 self.max_velocity = TARGET_VELOCITY_MPS
-                if self.traffic_waypoint != -1:
-                    if  BRAKE_LIMIT_LOWER < (self.traffic_waypoint - self.nearest_wy_indx) < BRAKE_LIMIT_UPPER:
-                        #rospy.logerr("WPUpdater, loop: Redlight Alert!  light_wy: %s car_wy:%s  ",self.traffic_waypoint, self.nearest_wy_indx)
-                        self.max_velocity = 0
-
-                self.final_lane = self.wph.create_lookahead_lane(self.base_lane, self.nearest_wy_indx, self.final_lane_step, LOOKAHEAD_WPS, self.max_velocity)
+                    
+                self.final_lane = self.wph.create_lookahead_lane(self.base_lane, self.nearest_wy_indx, self.traffic_waypoint, self.final_lane_step, LOOKAHEAD_WPS, self.max_velocity)
                 #for i in range(0, len(self.final_lane.waypoints)):
                 #    rospy.logerr("%i: %f, %f", i, self.final_lane.waypoints[i].pose.pose.position.x, self.final_lane.waypoints[i].pose.pose.position.y)
 

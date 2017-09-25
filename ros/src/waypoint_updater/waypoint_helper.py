@@ -19,7 +19,7 @@ class WaypointHelper(object):
 
         pass
 
-    def create_lookahead_lane(self, base_lane, begin_index, step, size, velocity):
+    def create_lookahead_lane(self, base_lane, begin_index, stop_line_wpt, step, size, velocity):
         lane = Lane()
         lane.header.frame_id = base_lane.header.frame_id
 
@@ -27,17 +27,38 @@ class WaypointHelper(object):
 
         lane.waypoints = base_lane.waypoints[begin_index: end_index : step]
 
+        indx_stop = 0        
+        indx_brake = 0
+        indx_slow_down = 0
+
+        if stop_line_wpt != -1:   #Red Light Stop Line is Active
+            if stop_line_wpt > begin_index:  # Stop Line is Ahead
+                indx_stop = stop_line_wpt - begin_index
+                indx_brake = indx_stop - 3
+                indx_slow_down = indx_stop - 20
+
         if begin_index + size > end_index :
             end_index = begin_index + size - end_index
             lane.waypoints += base_lane.waypoints[0:end_index:step]
 
+        indx = 0
         for p in lane.waypoints:
-            p.twist.twist.linear.x = velocity 
+            if indx > indx_stop:
+                v = velocity
+            elif indx > indx_brake:
+                v = 0.0
+            elif indx > indx_slow_down:
+                v = 4.0  #velocity * 0.5
+            else:
+                v = velocity    
+
+            p.twist.twist.linear.x = v
             p.twist.twist.linear.y = 0.0
             p.twist.twist.linear.z = 0.0
             p.twist.twist.angular.x = 0.0
             p.twist.twist.angular.y = 0.0
-            p.twist.twist.angular.z = 0.0            
+            p.twist.twist.angular.z = 0.0
+            indx += 1            
         return lane
 
     def find_nearest_index(self, current_position, base_waypoints, map_zone):
