@@ -34,7 +34,7 @@ LOG:
 
 LOOKAHEAD_WPS = 200 # Number of base_lane we will publish. You can change this number
 MPH_2_mps = 0.44704
-TARGET_VELOCITY_MPS = 20
+TARGET_VELOCITY_MPS = 10
 BRAKE_LIMIT_LOWER = 1
 BRAKE_LIMIT_UPPER = 20
 
