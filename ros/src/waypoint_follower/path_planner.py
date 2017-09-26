@@ -104,6 +104,11 @@ class PathPlanner(object):
                 self.cw_x = self.cw_x[idx-1:len(self.cw_x)]
                 self.cw_y = self.cw_y[idx-1:len(self.cw_y)]
                 self.cw_v = self.cw_v[idx-1:len(self.cw_v)]
+                rospy.logerr( self.maps_delta_s)
+                self.maps_delta_s = self.findMapDeltaS(self.cw_x, self.cw_y)
+                rospy.logerr( self.maps_delta_s)
+                rospy.logerr('---------------------------------')
+
 
             # if len(self.cw_x) < 40:
             #     rospy.logerr('{},{} len:{}'.format(self.car_x, self.car_y, len(self.cw_x)))

@@ -12,6 +12,11 @@ from map_zone import MapZone
 
 from styx_msgs.msg import Lane, Waypoint
 
+WPS_FOR_BRAKE_AREA = 3
+WPS_FOR_SLOW_DOWN_AREA = 20
+
+
+
 class WaypointHelper(object):
     def __init__(self, is_looped_waypoints = False):
 
@@ -34,8 +39,8 @@ class WaypointHelper(object):
         if stop_line_wpt != -1:   #Red Light Stop Line is Active
             if stop_line_wpt > begin_index:  # Stop Line is Ahead
                 indx_stop = stop_line_wpt - begin_index
-                indx_brake = indx_stop - 3
-                indx_slow_down = indx_stop - 20
+                indx_brake = indx_stop - WPS_FOR_BRAKE_AREA
+                indx_slow_down = indx_stop - WPS_FOR_SLOW_DOWN_AREA
 
         if begin_index + size > end_index :
             end_index = begin_index + size - end_index
@@ -63,7 +68,7 @@ class WaypointHelper(object):
 
     def find_nearest_index(self, current_position, base_waypoints, map_zone):
 
-        nearest_distance = 99999999
+        nearest_distance = 99999999.9
         nearest_index = 0
         index = 0
 
@@ -74,7 +79,7 @@ class WaypointHelper(object):
 
         for index in elems:
             p = base_waypoints[index]
-            d = self.get_distance_2D(p.pose.pose.position, current_position)
+            d = self.get_distance_2D_sq(p.pose.pose.position, current_position)
             if d < nearest_distance:
                 nearest_distance = d
                 nearest_index = index
@@ -85,6 +90,12 @@ class WaypointHelper(object):
         dx = p1.x - p2.x
         dy = p1.y - p2.y
         d = math.sqrt(dx * dx + dy * dy)
+        return d
+
+    def get_distance_2D_sq(self, p1, p2):
+        dx = p1.x - p2.x
+        dy = p1.y - p2.y
+        d = dx * dx + dy * dy
         return d
 
     def get_waypoint_velocity(self, waypoint):
