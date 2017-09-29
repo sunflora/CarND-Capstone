@@ -36,6 +36,10 @@ class WaypointHelper(object):
         indx_brake = 0
         indx_slow_down = 0
 
+        #adjust the slow down area according to its velocity
+        global WPS_FOR_SLOW_DOWN_AREA
+        WPS_FOR_SLOW_DOWN_AREA += int(min(velocity-4.47, 0.0 )*2)
+
         if stop_line_wpt != -1:   #Red Light Stop Line is Active
             if stop_line_wpt > begin_index:  # Stop Line is Ahead
                 indx_stop = stop_line_wpt - begin_index

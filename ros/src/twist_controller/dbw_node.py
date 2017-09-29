@@ -104,7 +104,7 @@ class DBWNode(object):
 
             self.publish(throttle, brake, steer)
 
-            #rospy.loginfo('dbw_node:{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
+            #rospy.logerr('dbw_node:{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
     
         pass
 
