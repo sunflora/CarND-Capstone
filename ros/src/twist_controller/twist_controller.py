@@ -54,7 +54,7 @@ class TwistController(object):
             self.linear_velocity_pid.reset()
             throttle = 0.0
             #brake = MAX_BRAKE_VALUE
-            brake = min(max(10, current_linear_velocity * 10), MAX_BRAKE_VALUE)
+            brake = min(max(50, current_linear_velocity * 50), MAX_BRAKE_VALUE)
 
         brake = min(brake, MAX_BRAKE_VALUE)
 
