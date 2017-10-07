@@ -241,7 +241,7 @@ class TLDetector(object):
         if self.state_count != 0:
             if self.state_count >= STATE_COUNT_THRESHOLD: 
                 self.active_state = self.state
-                self.active_wp = light_wp if state == TrafficLight.RED else -1
+                self.active_wp = light_wp if state != TrafficLight.GREEN else -1
             #rospy.logerr('lght:{} act:{}'.format( light_wp, self.active_wp))    
             self.upcoming_red_light_pub.publish(Int32(self.active_wp))
             
