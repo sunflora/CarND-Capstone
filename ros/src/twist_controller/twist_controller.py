@@ -53,7 +53,8 @@ class TwistController(object):
         else:
             self.linear_velocity_pid.reset()
             throttle = 0.0
-            brake = MAX_BRAKE_VALUE
+            #brake = MAX_BRAKE_VALUE
+            brake = min(max(1000, current_linear_velocity * 1000), MAX_BRAKE_VALUE)
 
         #   normalized steering : -1/+1
         #   normalized steering = steer_angle * 2 / max_steer_angle
