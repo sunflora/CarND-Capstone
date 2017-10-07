@@ -57,6 +57,9 @@ class TwistController(object):
 
         brake = min(brake, MAX_BRAKE_VALUE)
 
+        rospy.logerr('target {: f}, current {: f}, throttle {: f}, brake: {: f}'.format(target_linear_velocity, current_linear_velocity, throttle, brake))
+        rospy.loginfo('target {: f}, current {: f}, throttle {: f}, brake: {: f}'.format(target_linear_velocity, current_linear_velocity, throttle, brake))
+
         #   normalized steering : -1/+1
         #   normalized steering = steer_angle * 2 / max_steer_angle
         #   steer_angle = wheel_angle * steer_ratio
