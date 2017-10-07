@@ -12,7 +12,7 @@ from map_zone import MapZone
 
 from styx_msgs.msg import Lane, Waypoint
 
-WPS_FOR_BRAKE_AREA = 3
+WPS_FOR_BRAKE_AREA = 7
 WPS_FOR_SLOW_DOWN_AREA = 20
 
 
