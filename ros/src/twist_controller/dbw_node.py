@@ -104,7 +104,8 @@ class DBWNode(object):
 
             self.publish(throttle, brake, steer)
 
-            rospy.logerr('dbw_node:{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
+            if brake > 10:
+                rospy.logerr('dbw_node:{: f}\t{: f}\t{: f}'.format(steer, throttle, brake))
     
         pass
 
