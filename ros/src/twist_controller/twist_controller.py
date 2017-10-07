@@ -16,7 +16,7 @@ LINEAR_PID_MAX = 0.2  # limit by max acc as 1m/s^2
 ANGULAR_PID_MIN = -0.4
 ANGULAR_PID_MAX = 0.35
 ACCEL_SENSITIVITY = 0.06
-MAX_BRAKE_VALUE = 100
+MAX_BRAKE_VALUE = 250
 
 SAMPLE_TIME = 0.1 #TODO: It's related to the publishing frequency of the twist command.
 
@@ -53,8 +53,7 @@ class TwistController(object):
         else:
             self.linear_velocity_pid.reset()
             throttle = 0.0
-            #brake = MAX_BRAKE_VALUE
-            brake = min(max(50, current_linear_velocity * 50), MAX_BRAKE_VALUE)
+            brake = MAX_BRAKE_VALUE
 
         brake = min(brake, MAX_BRAKE_VALUE)
 
