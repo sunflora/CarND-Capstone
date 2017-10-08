@@ -112,10 +112,19 @@ class DBWNode(object):
 
     def publish(self, throttle, brake, steer):
 
+        tcmd = ThrottleCmd()
+        tcmd.enable = True
+        tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
+        tcmd.pedal_cmd = throttle
+        self.throttle_pub.publish(tcmd)
+
         scmd = SteeringCmd()
         scmd.enable = True
         scmd.steering_wheel_angle_cmd = steer
         self.steer_pub.publish(scmd)
+
+        ''' brake command will set throttle value to 0, even if brake is zero'''
+        ''' therefore the brake command is only sent if we are braking '''
 
         if brake > 0:
             bcmd = BrakeCmd()
@@ -123,12 +132,7 @@ class DBWNode(object):
             bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
             bcmd.pedal_cmd = brake
             self.brake_pub.publish(bcmd)
-        else:
-            tcmd = ThrottleCmd()
-            tcmd.enable = True
-            tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
-            tcmd.pedal_cmd = throttle
-            self.throttle_pub.publish(tcmd)
+
 
 if __name__ == '__main__':
     DBWNode()
