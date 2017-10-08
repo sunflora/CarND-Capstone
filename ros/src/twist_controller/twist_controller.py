@@ -52,6 +52,7 @@ class TwistController(object):
                 throttle = 0.0
         else:
             self.linear_velocity_pid.reset()
+            self.low_pass_filter.reset()
             throttle = 0.0
             brake = MAX_BRAKE_VALUE
 
