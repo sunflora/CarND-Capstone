@@ -13,7 +13,7 @@ from conf import conf
 sio = socketio.Server()
 app = Flask(__name__)
 bridge = Bridge(conf)
-msgs = {}
+msgs = []
 
 dbw_enable = False
 
@@ -22,7 +22,7 @@ def connect(sid, environ):
     print("connect ", sid)
 
 def send(topic, data):
-    msgs[topic] = data
+    msgs.append((topic, data))
 
 bridge.register_server(send)
 
@@ -37,7 +37,7 @@ def telemetry(sid, data):
     bridge.publish_odometry(data)
 
     for i in range(len(msgs)):
-        topic, data = msgs.popitem()
+        topic, data = msgs.pop(0)
         #rospy.logerr("======  telemetry: %s %s", topic, data)
         sio.emit(topic, data=data, ignore_queue=True)
 
