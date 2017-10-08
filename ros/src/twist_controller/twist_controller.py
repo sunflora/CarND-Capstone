@@ -31,12 +31,12 @@ class TwistController(object):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
 
-        if target_angular_velocity > 0.025:
-            #rospy.logerr('')
-            #rospy.logerr('target_linear_velocity.org {: f}'.format(target_linear_velocity))
-            v = self.yaw_controller.get_max_linear_velocity(current_linear_velocity, target_angular_velocity)
-            #rospy.logerr('max_linear_velocity(tangent) {: f}'.format(v))
-            target_linear_velocity = min ( v, target_linear_velocity)
+        # if target_angular_velocity > 0.025:
+        #     #rospy.logerr('')
+        #     #rospy.logerr('target_linear_velocity.org {: f}'.format(target_linear_velocity))
+        #     v = self.yaw_controller.get_max_linear_velocity(current_linear_velocity, target_angular_velocity)
+        #     #rospy.logerr('max_linear_velocity(tangent) {: f}'.format(v))
+        #     target_linear_velocity = min ( v, target_linear_velocity)
         
         
         sample_time = SAMPLE_TIME
