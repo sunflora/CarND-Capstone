@@ -69,6 +69,6 @@ class TwistController(object):
         #
         #   normalized steerting = wheel_angle * steer_sensitivity
 
-        steer = steer_sensitivity * self.yaw_controller.get_steering(target_linear_velocity, target_angular_velocity, current_linear_velocity)
+        steer = self.yaw_controller.get_steering(target_linear_velocity, target_angular_velocity, current_linear_velocity)
 
         return throttle, brake, steer
