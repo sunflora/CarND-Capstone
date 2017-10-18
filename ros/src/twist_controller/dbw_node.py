@@ -13,7 +13,7 @@ from yaw_controller import YawController
 mps_2_MPH = 1.0 / 0.44704
 MPH_2_mps = 0.44704
 
-min_speed = 5.0    #TODO: May need to adjust this variable
+min_speed = 1.0    #TODO: May need to adjust this variable
 
 '''
 You can build this node only after you have built (or partially built) the `waypoint_updater` node.
@@ -75,7 +75,7 @@ class DBWNode(object):
         self.controller = TwistController() #(<Arguments you wish to provide>)
         #max_steer_angle is half as in yaw_controller, we have range of (-1* max_steer_angle to max_steer_angle)
 
-        self.controller.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle / 2.)
+        self.controller.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
 
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/current_velocity',TwistStamped, self.velocity_cb)
