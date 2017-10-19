@@ -18,6 +18,8 @@ ANGULAR_PID_MAX = 0.35
 ACCEL_SENSITIVITY = 0.06
 MAX_BRAKE_VALUE = 250
 
+SHARP_TURN_FACTOR = 3.86  #reduce speed to ~2.07mph
+
 SAMPLE_TIME = 0.1 #TODO: It's related to the publishing frequency of the twist command.
 
 class TwistController(object):
@@ -31,13 +33,15 @@ class TwistController(object):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
 
-        # if target_angular_velocity > 0.025:
-        #     #rospy.logerr('')
-        #     #rospy.logerr('target_linear_velocity.org {: f}'.format(target_linear_velocity))
-        #     v = self.yaw_controller.get_max_linear_velocity(current_linear_velocity, target_angular_velocity)
-        #     #rospy.logerr('max_linear_velocity(tangent) {: f}'.format(v))
-        #     target_linear_velocity = min ( v, target_linear_velocity)
+        #if target_angular_velocity > 0.025:
+        #    rospy.logerr('')
+        #    rospy.logerr('target_linear_velocity.org {: f}'.format(target_linear_velocity))
+        #    v = self.yaw_controller.get_max_linear_velocity(current_linear_velocity, target_angular_velocity)
+        #    rospy.logerr('max_linear_velocity(tangent) {: f}'.format(v))
+        #    target_linear_velocity = min ( v, target_linear_velocity)
         
+        if target_angular_velocity > 0.025:
+            target_linear_velocity = max(target_linear_velocity / SHARP_TURN_FACTOR, 0.1)
         
         sample_time = SAMPLE_TIME
 
@@ -70,5 +74,7 @@ class TwistController(object):
         #   normalized steerting = wheel_angle * steer_sensitivity
 
         steer = self.yaw_controller.get_steering(target_linear_velocity, target_angular_velocity, current_linear_velocity)
+
+        #rospy.logerr("=======================  steer angle: %s", steer)
 
         return throttle, brake, steer
