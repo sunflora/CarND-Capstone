@@ -18,7 +18,7 @@ ANGULAR_PID_MAX = 0.35
 ACCEL_SENSITIVITY = 0.06
 MAX_BRAKE_VALUE = 250
 
-SHARP_TURN_FACTOR = 3.86  #reduce speed to ~2.07mph
+SHARP_TURN_FACTOR = 1.98 #3.86  #reduce speed to ~2.07mph
 
 SAMPLE_TIME = 0.1 #TODO: It's related to the publishing frequency of the twist command.
 
@@ -40,7 +40,7 @@ class TwistController(object):
         #    rospy.logerr('max_linear_velocity(tangent) {: f}'.format(v))
         #    target_linear_velocity = min ( v, target_linear_velocity)
         
-        if target_angular_velocity > 0.025:
+        if target_angular_velocity > 0.025 and target_linear_velocity > 0.1:
             target_linear_velocity = max(target_linear_velocity / SHARP_TURN_FACTOR, 0.1)
         
         sample_time = SAMPLE_TIME
